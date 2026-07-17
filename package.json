@@ -1,0 +1,21 @@
+{
+  "name": "salon-saas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SaaS de gestão para salões de beleza — monorepo (Next.js + Node.js + Supabase)",
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "dev:back": "pnpm --filter back-end dev",
+    "dev:front": "pnpm --filter front-end dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  },
+  "packageManager": "pnpm@9.7.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

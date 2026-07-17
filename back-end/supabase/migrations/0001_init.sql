@@ -1,0 +1,3 @@
+-- Migration inicial (placeholder)
+-- Defina aqui as tabelas: organizations, salons, professionals,
+-- clients, services, appointments, transactions, alerts, subscriptions.

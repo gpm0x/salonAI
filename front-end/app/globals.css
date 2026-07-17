@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Paleta "Ateliê" — porcelana quente, aubergine profundo, latão */
+  --bg: 38 32% 95%;
+  --surface: 40 44% 99%;
+  --ink: 22 16% 13%;
+  --muted: 26 8% 44%;
+  --line: 34 24% 88%;
+
+  --primary: 326 34% 22%;
+  --primary-fg: 40 44% 97%;
+  --primary-soft: 326 30% 94%;
+
+  --accent: 34 54% 47%;
+  --accent-fg: 40 44% 98%;
+  --accent-soft: 36 60% 92%;
+
+  --success: 150 34% 34%;
+  --danger: 6 58% 47%;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--line));
+  }
+
+  body {
+    background-color: hsl(var(--bg));
+    color: hsl(var(--ink));
+    font-family: var(--font-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(
+        1100px 600px at 88% -8%,
+        hsl(var(--accent) / 0.1),
+        transparent 60%
+      ),
+      radial-gradient(
+        900px 620px at -6% 4%,
+        hsl(var(--primary) / 0.08),
+        transparent 55%
+      );
+    background-attachment: fixed;
+  }
+
+  /* Grão têxtil sutil, dá profundidade sem pesar */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display), Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.16);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Traços de números tabulares para métricas alinhadas */
+  .nums {
+    font-feature-settings: "tnum" 1, "ss01" 1;
+    font-variant-numeric: tabular-nums;
+  }
+}
