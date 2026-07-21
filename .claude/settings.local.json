@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install *)",
+      "Bash(timeout 12 npx tsx src/server.ts)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"=== EXIT: $? ===\")",
+      "Bash(cd \"c:/Users/Gabriel Mota/Desktop/Batcave/Projetos/salonAI/front-end\" && rm -rf .next && echo \".next removido\" && ls -la | grep -c next)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Gabriel Mota\\Desktop\\Batcave\\Projetos\\salonAI\\front-end\\.next"
+    ]
+  }
+}
