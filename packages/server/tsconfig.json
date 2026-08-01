@@ -14,7 +14,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@shared/*": ["../packages/shared-types/*"]
+      "@shared/*": ["../shared-types/*"]
     }
   },
   "include": ["src/**/*.ts"],

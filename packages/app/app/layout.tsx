@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Hanken_Grotesk } from "next/font/google";
+import { QueryProvider } from "@/components/providers/query-provider";
 import "./globals.css";
 
 const display = Fraunces({
@@ -30,7 +31,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={`${display.variable} ${sans.variable}`}>
-      <body className="relative">{children}</body>
+      <body className="relative">
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }

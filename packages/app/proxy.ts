@@ -9,13 +9,13 @@ import type { NextRequest } from "next/server";
 // estiver implementada em `lib/auth/session.ts`, proteja aqui as rotas
 // do grupo (dashboard): leia o token/sessão e redirecione para /login
 // quando não autenticado.
-export function middleware(_request: NextRequest) {
-  return NextResponse.next();
+export function proxy(_request: NextRequest) {
+    return NextResponse.next();
 }
 
 // Aplica o middleware a todas as rotas, exceto assets estáticos e internos.
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+    matcher: [
+        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    ],
 };
