@@ -2,14 +2,18 @@
   "name": "salon-saas",
   "version": "0.1.0",
   "private": true,
-  "description": "SaaS de gestão para salões de beleza — monorepo (Next.js + Node.js + Supabase)",
+  "description": "SaaS de gestao para saloes de beleza — monorepo (Next.js + Fastify + Supabase)",
   "scripts": {
     "dev": "pnpm --parallel -r dev",
-    "dev:back": "pnpm --filter back-end dev",
-    "dev:front": "pnpm --filter front-end dev",
+    "dev:server": "pnpm --filter @salon/server dev",
+    "dev:app": "pnpm --filter @salon/app dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "db:generate": "pnpm --filter @salon/server db:generate",
+    "db:push": "pnpm --filter @salon/server db:push",
+    "db:studio": "pnpm --filter @salon/server db:studio",
+    "generate:api": "pnpm --filter @salon/app generate:api"
   },
   "devDependencies": {
     "typescript": "^5.5.4"

@@ -12,6 +12,9 @@ out/
 .env.local
 !.env.example
 
+# generated
+src/generated/
+
 # logs / os
 *.log
 .DS_Store
