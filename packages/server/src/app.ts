@@ -8,6 +8,7 @@ import {
 import swaggerPlugin from "./shared/infrastructure/plugins/swagger.plugin"
 import authPlugin from "./shared/infrastructure/plugins/auth.plugin"
 import errorHandlerPlugin from "./shared/infrastructure/plugins/error-handler.plugin"
+import { organizationRoutes } from "./modules/organizations/organizations.routes"
 
 export async function buildApp() {
   const app = Fastify({
@@ -36,10 +37,7 @@ export async function buildApp() {
 
   app.get("/health", async () => ({ status: "ok" }))
 
-  // Module routes will be registered here as they are implemented
-  // await app.register(salonRoutes, { prefix: "/api/salons" })
-  // await app.register(serviceRoutes, { prefix: "/api/services" })
-  // etc.
+  await app.register(organizationRoutes, { prefix: "/api/organizations" })
 
   return app
 }

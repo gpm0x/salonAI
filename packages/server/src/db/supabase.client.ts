@@ -1,8 +1,1 @@
-import { createClient } from "@supabase/supabase-js";
-import { env } from "../config/env";
-
-export const supabase = createClient(
-  env.supabaseUrl,
-  env.supabaseServiceRoleKey,
-  { auth: { persistSession: false } },
-);
+// Placeholder — Supabase client not used; auth is handled by Better Auth via Prisma

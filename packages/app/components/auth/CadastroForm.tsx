@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { authClient } from "@/lib/auth/auth-client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/auth/PasswordInput";
@@ -51,6 +53,7 @@ const forcaMeta = [
 ];
 
 export function CadastroForm() {
+  const router = useRouter();
   const [etapa, setEtapa] = useState<1 | 2>(1);
   const [concluido, setConcluido] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -95,7 +98,7 @@ export function CadastroForm() {
     if (validarEtapa1()) setEtapa(2);
   }
 
-  function finalizar(ev: FormEvent) {
+  async function finalizar(ev: FormEvent) {
     ev.preventDefault();
     const e: Record<string, string> = {};
     if (!form.nomeSalao.trim()) e.nomeSalao = "Informe o nome do salão.";
@@ -105,11 +108,40 @@ export function CadastroForm() {
     if (Object.keys(e).length) return;
 
     setEnviando(true);
-    // simula a criação da conta; troque pela chamada real da API
-    setTimeout(() => {
-      setEnviando(false);
+    try {
+      const { data, error } = await authClient.signUp.email({
+        email: form.email,
+        password: form.senha,
+        name: form.nome,
+      });
+
+      if (error || !data) {
+        setErros({ _global: error?.message ?? "Erro ao criar conta." });
+        return;
+      }
+
+      // Better Auth signUp returns token at top level of data
+      const token = data.token;
+      if (!token) throw new Error("Sessao nao criada");
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const res = await fetch(`${apiUrl}/api/organizations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: form.nomeSalao }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao criar organização");
+
       setConcluido(true);
-    }, 1400);
+    } catch {
+      setErros({ _global: "Erro ao criar conta. Tente novamente." });
+    } finally {
+      setEnviando(false);
+    }
   }
 
   // ── Sucesso ─────────────────────────────────
@@ -151,16 +183,18 @@ export function CadastroForm() {
           </ul>
         </div>
 
-        <Link href="/dashboard" className="mt-6 block">
-          <Button size="lg" className="group w-full">
-            Ir para o painel
-            <IconArrowRight
-              width={17}
-              height={17}
-              className="transition-transform duration-200 group-hover:translate-x-0.5"
-            />
-          </Button>
-        </Link>
+        <Button
+          size="lg"
+          className="group mt-6 w-full"
+          onClick={() => router.push("/dashboard")}
+        >
+          Ir para o painel
+          <IconArrowRight
+            width={17}
+            height={17}
+            className="transition-transform duration-200 group-hover:translate-x-0.5"
+          />
+        </Button>
 
         <p className="mt-4 text-xs text-muted">
           Você tem 14 dias grátis. Sem cartão de crédito.
@@ -408,6 +442,10 @@ export function CadastroForm() {
               <p className="mt-1 text-xs text-danger">{erros.aceite}</p>
             )}
           </div>
+
+          {erros._global && (
+            <p className="text-sm text-danger">{erros._global}</p>
+          )}
 
           <div className="flex gap-3">
             <Button

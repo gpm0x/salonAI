@@ -1,3 +1,5 @@
+import { authClient } from "./auth/auth-client"
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
 
 export const customInstance = async <T>({
@@ -14,6 +16,9 @@ export const customInstance = async <T>({
   headers?: Record<string, string>
   signal?: AbortSignal
 }): Promise<T> => {
+  const session = await authClient.getSession()
+  const token = session.data?.session?.token
+
   const queryString = params
     ? `?${new URLSearchParams(params).toString()}`
     : ""
@@ -22,6 +27,7 @@ export const customInstance = async <T>({
     method: method.toUpperCase(),
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
     ...(data ? { body: JSON.stringify(data) } : {}),

@@ -4,7 +4,7 @@ import { ZodError } from "zod"
 import { DomainError } from "../../domain/errors"
 
 async function errorHandlerPlugin(fastify: FastifyInstance) {
-  fastify.setErrorHandler((error, _request, reply) => {
+  fastify.setErrorHandler((error: unknown, _request, reply) => {
     if (error instanceof DomainError) {
       return reply.status(error.statusCode).send({
         code: error.code,
@@ -20,10 +20,11 @@ async function errorHandlerPlugin(fastify: FastifyInstance) {
       })
     }
 
-    if (error.statusCode && error.statusCode < 500) {
-      return reply.status(error.statusCode).send({
-        code: error.code ?? "CLIENT_ERROR",
-        message: error.message,
+    const err = error as { statusCode?: number; code?: string; message?: string }
+    if (err.statusCode && err.statusCode < 500) {
+      return reply.status(err.statusCode).send({
+        code: err.code ?? "CLIENT_ERROR",
+        message: err.message,
       })
     }
 
