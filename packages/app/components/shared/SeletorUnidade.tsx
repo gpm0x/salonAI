@@ -1,21 +1,27 @@
 "use client";
 
-import { useState } from "react";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Badge } from "@/components/ui/Badge";
 import { IconStore, IconCheck } from "@/components/ui/icons";
-import { unidades, formatBRL } from "@/lib/mock-data";
 import { cn } from "@/lib/utils/cn";
+import { formatBRL } from "@/lib/utils/format";
+import { useSalonSelector } from "@/hooks/useSalonSelector";
 
 export function SeletorUnidade() {
-  const [ativaId, setAtivaId] = useState(
-    unidades.find((u) => u.principal)?.id ?? unidades[0].id,
-  );
-  const ativa = unidades.find((u) => u.id === ativaId)!;
+  const { salons, selectedSalon, selectedId, selectSalon, isLoading } = useSalonSelector();
 
-  const totalDia = unidades
-    .filter((u) => u.ativa)
-    .reduce((s, u) => s + u.faturamentoDia, 0);
+  if (isLoading || !selectedSalon) {
+    return (
+      <span className="flex items-center gap-2.5 rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-muted">
+        <span className="grid h-6 w-6 place-items-center rounded-full bg-primary-soft text-primary">
+          <IconStore width={14} height={14} />
+        </span>
+        Carregando...
+      </span>
+    );
+  }
+
+  const totalDia = salons.filter((u) => u.ativa).reduce((s, u) => s + u.faturamentoDia, 0);
 
   return (
     <Dropdown
@@ -27,7 +33,7 @@ export function SeletorUnidade() {
           <span className="grid h-6 w-6 place-items-center rounded-full bg-primary-soft text-primary">
             <IconStore width={14} height={14} />
           </span>
-          {ativa.nome}
+          {selectedSalon.nome}
           <svg
             width="14"
             height="14"
@@ -35,10 +41,7 @@ export function SeletorUnidade() {
             fill="none"
             stroke="currentColor"
             strokeWidth="1.8"
-            className={cn(
-              "text-muted transition-transform",
-              aberto && "rotate-180",
-            )}
+            className={cn("text-muted transition-transform", aberto && "rotate-180")}
           >
             <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -52,50 +55,31 @@ export function SeletorUnidade() {
           </p>
 
           <ul className="space-y-1">
-            {unidades.map((u) => {
-              const selecionada = u.id === ativaId;
+            {salons.map((u) => {
+              const selecionada = u.id === selectedId;
               return (
                 <li key={u.id}>
                   <button
-                    onClick={() => {
-                      setAtivaId(u.id);
-                      fechar();
-                    }}
+                    onClick={() => { selectSalon(u.id); fechar(); }}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
-                      selecionada
-                        ? "bg-primary-soft/70"
-                        : "hover:bg-primary-soft/40",
+                      selecionada ? "bg-primary-soft/70" : "hover:bg-primary-soft/40",
                     )}
                   >
-                    <span
-                      className={cn(
-                        "grid h-9 w-9 shrink-0 place-items-center rounded-xl",
-                        u.ativa
-                          ? "bg-primary-soft text-primary"
-                          : "bg-ink/5 text-muted",
-                      )}
-                    >
+                    <span className={cn(
+                      "grid h-9 w-9 shrink-0 place-items-center rounded-xl",
+                      u.ativa ? "bg-primary-soft text-primary" : "bg-ink/5 text-muted",
+                    )}>
                       <IconStore width={17} height={17} />
                     </span>
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <p className="truncate text-sm font-medium text-ink">
-                          {u.nome}
-                        </p>
-                        {selecionada && (
-                          <IconCheck
-                            width={13}
-                            height={13}
-                            className="shrink-0 text-primary"
-                          />
-                        )}
+                        <p className="truncate text-sm font-medium text-ink">{u.nome}</p>
+                        {selecionada && <IconCheck width={13} height={13} className="shrink-0 text-primary" />}
                       </div>
                       <p className="truncate text-xs text-muted">
-                        {u.ativa
-                          ? `${u.atendimentosDia} atendimentos hoje`
-                          : "Unidade inativa"}
+                        {u.ativa ? `${u.atendimentosDia} atendimentos hoje` : "Unidade inativa"}
                       </p>
                     </div>
 

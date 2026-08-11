@@ -89,8 +89,11 @@ export class PrismaSalonRepository implements ISalonRepository {
     })
   }
 
-  async softDelete(id: string, _organizationId: string): Promise<void> {
-    await this.prisma.salon.update({ where: { id }, data: { isActive: false } })
+  async softDelete(id: string, organizationId: string): Promise<void> {
+    await this.prisma.salon.updateMany({
+      where: { id, organizationId },
+      data: { isActive: false },
+    })
   }
 
   async clearMainSalon(organizationId: string): Promise<void> {

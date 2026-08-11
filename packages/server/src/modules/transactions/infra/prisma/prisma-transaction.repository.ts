@@ -112,25 +112,29 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       percentual: receita > 0 ? Math.round((cents / 100 / receita) * 100) : 0,
     }))
 
-    const historico: TransactionSummaryDTO["historico"] = []
-    for (let i = 11; i >= 0; i--) {
-      const hStart = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const hEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999)
-      const [txs, appts] = await Promise.all([
-        this.prisma.transaction.aggregate({
-          where: { organizationId, paidAt: { gte: hStart, lte: hEnd } },
-          _sum: { amountCents: true },
-        }),
-        this.prisma.appointment.count({
-          where: { organizationId, status: "concluido", startsAt: { gte: hStart, lte: hEnd } },
-        }),
-      ])
-      historico.push({
-        mes: MES_NAMES[hStart.getMonth()],
-        receita: (txs._sum.amountCents ?? 0) / 100,
-        atendimentos: appts,
-      })
-    }
+    const historicoRaw = await Promise.all(
+      Array.from({ length: 12 }, (_, i) => {
+        const offset = 11 - i
+        const hStart = new Date(now.getFullYear(), now.getMonth() - offset, 1)
+        const hEnd = new Date(now.getFullYear(), now.getMonth() - offset + 1, 0, 23, 59, 59, 999)
+        return Promise.all([
+          hStart,
+          this.prisma.transaction.aggregate({
+            where: { organizationId, paidAt: { gte: hStart, lte: hEnd } },
+            _sum: { amountCents: true },
+          }),
+          this.prisma.appointment.count({
+            where: { organizationId, status: "concluido", startsAt: { gte: hStart, lte: hEnd } },
+          }),
+        ])
+      }),
+    )
+
+    const historico: TransactionSummaryDTO["historico"] = historicoRaw.map(([hStart, txs, appts]) => ({
+      mes: MES_NAMES[(hStart as Date).getMonth()],
+      receita: ((txs as { _sum: { amountCents: number | null } })._sum.amountCents ?? 0) / 100,
+      atendimentos: appts as number,
+    }))
 
     return {
       receita,

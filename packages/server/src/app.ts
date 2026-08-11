@@ -1,5 +1,7 @@
 import Fastify from "fastify"
 import cors from "@fastify/cors"
+import helmet from "@fastify/helmet"
+import rateLimit from "@fastify/rate-limit"
 import sensible from "@fastify/sensible"
 import {
   serializerCompiler,
@@ -16,6 +18,7 @@ import { clientRoutes } from "./modules/clients/presentation/client.routes"
 import { appointmentRoutes } from "./modules/appointments/presentation/appointment.routes"
 import { transactionRoutes } from "./modules/transactions/presentation/transaction.routes"
 import { dashboardRoutes } from "./modules/dashboard/presentation/dashboard.routes"
+import { alertRoutes } from "./modules/alerts/presentation/alert.routes"
 
 export async function buildApp() {
   const app = Fastify({
@@ -30,6 +33,21 @@ export async function buildApp() {
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
 
+  await app.register(helmet, {
+    contentSecurityPolicy: false, // CSP gerenciado pelo reverse proxy em prod
+    crossOriginEmbedderPolicy: false,
+  })
+
+  await app.register(rateLimit, {
+    global: true,
+    max: 200,
+    timeWindow: "1 minute",
+    errorResponseBuilder: () => ({
+      code: "RATE_LIMIT",
+      message: "Muitas requisições. Tente novamente em instantes.",
+    }),
+  })
+
   await app.register(cors, {
     origin: process.env.NODE_ENV === "production"
       ? [process.env.FRONTEND_URL ?? ""]
@@ -38,7 +56,11 @@ export async function buildApp() {
   })
 
   await app.register(sensible)
-  await app.register(swaggerPlugin)
+
+  if (process.env.NODE_ENV !== "production") {
+    await app.register(swaggerPlugin)
+  }
+
   await app.register(authPlugin)
   await app.register(errorHandlerPlugin)
 
@@ -52,6 +74,7 @@ export async function buildApp() {
   await app.register(appointmentRoutes, { prefix: "/api/appointments" })
   await app.register(transactionRoutes, { prefix: "/api/transactions" })
   await app.register(dashboardRoutes, { prefix: "/api/dashboard" })
+  await app.register(alertRoutes, { prefix: "/api/alerts" })
 
   return app
 }

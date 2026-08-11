@@ -83,8 +83,11 @@ export class PrismaClientRepository implements IClientRepository {
     })
   }
 
-  async softDelete(id: string, _organizationId: string): Promise<void> {
-    await this.prisma.client.update({ where: { id }, data: { status: "inativo" } })
+  async softDelete(id: string, organizationId: string): Promise<void> {
+    await this.prisma.client.updateMany({
+      where: { id, organizationId },
+      data: { status: "inativo" },
+    })
   }
 
   private toDTO(

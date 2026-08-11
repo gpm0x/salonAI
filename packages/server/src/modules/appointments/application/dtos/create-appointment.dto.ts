@@ -7,8 +7,8 @@ export const createAppointmentSchema = z.object({
   serviceId: z.string().uuid(),
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   inicio: z.string().regex(/^\d{2}:\d{2}$/),
-  observacoes: z.string().optional(),
-  valor: z.number().positive().optional(),
+  observacoes: z.string().max(500).trim().optional(),
+  valor: z.number().positive().max(100_000).optional(),
 })
 
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>

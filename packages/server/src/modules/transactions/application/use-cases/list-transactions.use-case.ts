@@ -9,14 +9,26 @@ export class ListTransactionsUseCase implements UseCase<Input, Output> {
   constructor(private readonly repo: ITransactionRepository) {}
 
   async execute({ organizationId, mes }: Input): Promise<Output> {
-    let year: number, month: number
+    const now = new Date()
+    let year = now.getFullYear()
+    let month = now.getMonth()
+
     if (mes) {
+      if (!/^\d{4}-\d{2}$/.test(mes)) {
+        const data = await this.repo.list(
+          organizationId,
+          new Date(year, month, 1),
+          new Date(year, month + 1, 0, 23, 59, 59, 999),
+        )
+        return { data }
+      }
       const [y, m] = mes.split("-").map(Number)
-      year = y; month = m - 1
-    } else {
-      const now = new Date()
-      year = now.getFullYear(); month = now.getMonth()
+      if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
+        year = y
+        month = m - 1
+      }
     }
+
     const monthStart = new Date(year, month, 1)
     const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999)
     const data = await this.repo.list(organizationId, monthStart, monthEnd)

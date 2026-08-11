@@ -1,10 +1,16 @@
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { IconArrowDown, IconClock } from "@/components/ui/icons";
-import { tempoMedio } from "@/lib/mock-data";
+import { IconArrowDown, IconArrowUp, IconClock } from "@/components/ui/icons";
 
-export function TempoMedioAtendimento() {
-  const maxServico = Math.max(...tempoMedio.porServico.map((s) => s.minutos));
+interface Props {
+  minutos: number;
+  variacao: number;
+  porServico: Array<{ nome: string; minutos: number }>;
+}
+
+export function TempoMedioAtendimento({ minutos, variacao, porServico }: Props) {
+  const maxServico = Math.max(...porServico.map((s) => s.minutos), 1);
+  const reducao = variacao < 0;
 
   return (
     <Card className="flex flex-col p-6">
@@ -14,20 +20,18 @@ export function TempoMedioAtendimento() {
           <span className="text-sm font-medium">Tempo médio</span>
         </div>
         <Badge tone="success">
-          <IconArrowDown width={13} height={13} />
-          {Math.abs(tempoMedio.variacao)}%
+          {reducao ? <IconArrowDown width={13} height={13} /> : <IconArrowUp width={13} height={13} />}
+          {Math.abs(variacao)}%
         </Badge>
       </div>
 
       <div className="mt-3 flex items-baseline gap-1.5">
-        <p className="font-display text-4xl text-ink nums">
-          {tempoMedio.minutos}
-        </p>
+        <p className="font-display text-4xl text-ink nums">{minutos}</p>
         <span className="text-sm text-muted">min / atendimento</span>
       </div>
 
       <div className="mt-5 space-y-3">
-        {tempoMedio.porServico.map((s) => (
+        {porServico.map((s) => (
           <div key={s.nome}>
             <div className="flex items-center justify-between text-xs">
               <span className="text-ink/80">{s.nome}</span>

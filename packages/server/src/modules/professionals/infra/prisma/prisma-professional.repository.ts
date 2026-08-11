@@ -90,8 +90,11 @@ export class PrismaProfessionalRepository implements IProfessionalRepository {
     })
   }
 
-  async softDelete(id: string, _organizationId: string): Promise<void> {
-    await this.prisma.professional.update({ where: { id }, data: { status: "inativo" } })
+  async softDelete(id: string, organizationId: string): Promise<void> {
+    await this.prisma.professional.updateMany({
+      where: { id, organizationId },
+      data: { status: "inativo" },
+    })
   }
 
   private toDTO(
