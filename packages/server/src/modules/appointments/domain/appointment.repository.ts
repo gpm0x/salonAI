@@ -6,6 +6,6 @@ export interface IAppointmentRepository {
   list(organizationId: string, date: Date): Promise<AppointmentItemDTO[]>
   findByIdWithDetails(id: string, organizationId: string): Promise<AppointmentItemDTO | null>
   findById(id: string, organizationId: string): Promise<Appointment | null>
-  updateStatus(id: string, status: string): Promise<void>
+  updateStatus(id: string, organizationId: string, status: string): Promise<void>
   hasConflict(professionalId: string, startsAt: Date, endsAt: Date, excludeId?: string): Promise<boolean>
 }

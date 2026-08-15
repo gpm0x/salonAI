@@ -11,6 +11,6 @@ export const updateClientSchema = z.object({
   aniversario: z.string().regex(DATE_REGEX, "Data inválida (use YYYY-MM-DD)").nullable().optional(),
   servicoFavorito: z.string().max(100).trim().nullable().optional(),
   profissionalPreferidoId: z.string().uuid().nullable().optional(),
-})
+}).strict()
 
 export type UpdateClientInput = z.infer<typeof updateClientSchema>

@@ -1,11 +1,19 @@
+import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { Topbar } from "@/components/shared/Topbar";
+import { getSession } from "@/lib/auth/session";
 
-export default function DashboardLayout({
+// Authoritative session check — runs server-side on every dashboard render,
+// independent of middleware. This is the fallback that protects dashboard
+// routes even if middleware is bypassed (e.g. CVE-2025-29927 pattern).
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   return (
     <div className="relative z-10 flex min-h-screen">
       <Sidebar />

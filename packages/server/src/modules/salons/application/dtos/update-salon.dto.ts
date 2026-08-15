@@ -11,6 +11,6 @@ export const updateSalonSchema = z.object({
   cadeiras: z.number().int().min(1).max(500).optional(),
   principal: z.boolean().optional(),
   ativa: z.boolean().optional(),
-})
+}).strict()
 
 export type UpdateSalonInput = z.infer<typeof updateSalonSchema>

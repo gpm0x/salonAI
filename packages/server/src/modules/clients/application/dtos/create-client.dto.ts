@@ -11,6 +11,6 @@ export const createClientSchema = z.object({
   aniversario: z.string().regex(DATE_REGEX, "Data inválida (use YYYY-MM-DD)").optional(),
   servicoFavorito: z.string().max(100).trim().optional(),
   profissionalPreferidoId: z.string().uuid().optional(),
-})
+}).strict()
 
 export type CreateClientInput = z.infer<typeof createClientSchema>

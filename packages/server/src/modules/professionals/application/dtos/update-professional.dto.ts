@@ -17,6 +17,6 @@ export const updateProfessionalSchema = z.object({
   dias: z.array(z.enum(DIAS_VALIDOS)).max(7).optional(),
   horario: z.string().max(500).nullable().optional(),
   desde: z.string().regex(DATE_REGEX, "Data inválida (use YYYY-MM-DD)").nullable().optional(),
-})
+}).strict()
 
 export type UpdateProfessionalInput = z.infer<typeof updateProfessionalSchema>

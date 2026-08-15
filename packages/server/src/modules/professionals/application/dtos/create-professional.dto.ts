@@ -16,6 +16,6 @@ export const createProfessionalSchema = z.object({
   dias: z.array(z.enum(DIAS_VALIDOS)).max(7).default([]),
   horario: z.string().max(500).optional(),
   desde: z.string().regex(DATE_REGEX, "Data inválida (use YYYY-MM-DD)").optional(),
-})
+}).strict()
 
 export type CreateProfessionalInput = z.infer<typeof createProfessionalSchema>

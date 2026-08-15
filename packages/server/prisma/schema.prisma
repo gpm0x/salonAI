@@ -262,3 +262,14 @@ model Alert {
   @@index([organizationId])
   @@map("alert")
 }
+
+// Idempotency log for Stripe webhook events.
+// Primary key = Stripe event ID (evt_...) provides the UNIQUE constraint.
+// INSERT ... ON CONFLICT DO NOTHING ensures each event is processed once.
+model StripeEvent {
+  id          String   @id  // Stripe event ID, e.g. evt_1abc...
+  type        String
+  processedAt DateTime @default(now())
+
+  @@map("stripe_event")
+}

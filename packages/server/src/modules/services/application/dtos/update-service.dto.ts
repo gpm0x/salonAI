@@ -13,6 +13,6 @@ export const updateServiceSchema = z.object({
   preco: z.number().positive().optional(),
   comissao: z.number().min(0).max(100).optional(),
   ativo: z.boolean().optional(),
-})
+}).strict()
 
 export type UpdateServiceInput = z.infer<typeof updateServiceSchema>

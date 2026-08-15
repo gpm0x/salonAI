@@ -15,6 +15,6 @@ export const createServiceSchema = z.object({
   duracao: z.number().int().min(10).refine((v) => v % 5 === 0, "Duração deve ser múltiplo de 5"),
   preco: z.number().positive(),
   comissao: z.number().min(0).max(100).default(0),
-})
+}).strict()
 
 export type CreateServiceInput = z.infer<typeof createServiceSchema>

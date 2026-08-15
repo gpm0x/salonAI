@@ -11,6 +11,6 @@ export class UpdateAppointmentStatusUseCase implements UseCase<Input, void> {
   async execute({ id, organizationId, status }: Input): Promise<void> {
     const existing = await this.repo.findById(id, organizationId)
     if (!existing) throw new NotFoundError("Agendamento nao encontrado")
-    await this.repo.updateStatus(id, status)
+    await this.repo.updateStatus(id, organizationId, status)
   }
 }

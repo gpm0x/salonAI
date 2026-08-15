@@ -70,8 +70,10 @@ export class PrismaAppointmentRepository implements IAppointmentRepository {
     return row ? this.toEntity(row) : null
   }
 
-  async updateStatus(id: string, status: string): Promise<void> {
-    await this.prisma.appointment.update({ where: { id }, data: { status } })
+  async updateStatus(id: string, organizationId: string, status: string): Promise<void> {
+    // updateMany accepts non-unique fields in where; ensures cross-tenant isolation
+    // at the database layer independent of application-level ownership checks.
+    await this.prisma.appointment.updateMany({ where: { id, organizationId }, data: { status } })
   }
 
   async hasConflict(professionalId: string, startsAt: Date, endsAt: Date, excludeId?: string): Promise<boolean> {

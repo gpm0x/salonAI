@@ -10,6 +10,6 @@ export const createSalonSchema = z.object({
   horario: z.string().max(1000).optional(),
   cadeiras: z.number().int().min(1).max(500).default(1),
   principal: z.boolean().default(false),
-})
+}).strict()
 
 export type CreateSalonInput = z.infer<typeof createSalonSchema>

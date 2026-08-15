@@ -9,6 +9,6 @@ export const createAppointmentSchema = z.object({
   inicio: z.string().regex(/^\d{2}:\d{2}$/),
   observacoes: z.string().max(500).trim().optional(),
   valor: z.number().positive().max(100_000).optional(),
-})
+}).strict()
 
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>

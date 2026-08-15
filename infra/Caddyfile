@@ -1,0 +1,15 @@
+# Caddy reverse proxy for SalonAI (self-hosted)
+# SEC-02: strips x-middleware-subrequest (CVE-2025-29927)
+
+:80 {
+    # Strip internal Next.js header before forwarding.
+    request_header -x-middleware-subrequest
+
+    handle /api/* {
+        reverse_proxy localhost:3333
+    }
+
+    handle {
+        reverse_proxy localhost:3000
+    }
+}

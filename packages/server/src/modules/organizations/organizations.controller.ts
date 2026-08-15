@@ -7,7 +7,7 @@ import { NotFoundError } from "@/shared/domain/errors"
 
 const createBodySchema = z.object({
   name: z.string().min(2).max(100),
-})
+}).strict()
 
 export async function createOrganizationController(request: FastifyRequest, reply: FastifyReply) {
   const { name } = createBodySchema.parse(request.body)
