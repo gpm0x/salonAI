@@ -18,7 +18,8 @@ const STORAGE_KEY = "salon:selected";
 export function useSalonSelector() {
   const { data: salons = [], isLoading } = useQuery<SalonItem[]>({
     queryKey: ["salons"],
-    queryFn: () => apiClient.get<SalonItem[]>("/api/salons"),
+    queryFn: () =>
+      apiClient.get<{ data: SalonItem[] }>("/api/salons").then((r) => r.data),
     staleTime: 5 * 60 * 1000,
   });
 

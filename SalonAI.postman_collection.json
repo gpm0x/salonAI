@@ -1,0 +1,688 @@
+{
+  "info": {
+    "name": "SalonAI API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:3333" },
+    { "key": "APP_URL", "value": "http://localhost:3000" },
+    { "key": "TOKEN", "value": "" },
+    { "key": "AUTH_EMAIL", "value": "" },
+    { "key": "AUTH_PASSWORD", "value": "" },
+    { "key": "salonId", "value": "" },
+    { "key": "clientId", "value": "" },
+    { "key": "professionalId", "value": "" },
+    { "key": "serviceId", "value": "" },
+    { "key": "appointmentId", "value": "" },
+    { "key": "transactionId", "value": "" },
+    { "key": "alertId", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "const token = pm.collectionVariables.get('TOKEN');",
+          "if (token && token.length > 10) return;",
+          "",
+          "const appUrl = pm.collectionVariables.get('APP_URL') || 'http://localhost:3000';",
+          "const email = pm.collectionVariables.get('AUTH_EMAIL');",
+          "const password = pm.collectionVariables.get('AUTH_PASSWORD');",
+          "",
+          "if (!email || !password) {",
+          "  console.error('AUTH_EMAIL ou AUTH_PASSWORD nao configurados nas variaveis da collection.');",
+          "  return;",
+          "}",
+          "",
+          "pm.sendRequest({",
+          "  url: appUrl + '/api/auth/sign-in/email',",
+          "  method: 'POST',",
+          "  header: {",
+          "    'Content-Type': 'application/json',",
+          "    'Origin': appUrl",
+          "  },",
+          "  body: { mode: 'raw', raw: JSON.stringify({ email: email, password: password }) }",
+          "}, function(err, res) {",
+          "  if (err) { console.error('Auto sign-in falhou:', err); return; }",
+          "  const json = res.json();",
+          "  const t = json.token || (json.data && json.data.token) || (json.data && json.data.session && json.data.session.token);",
+          "  if (t) {",
+          "    pm.collectionVariables.set('TOKEN', t);",
+          "    console.log('Auto sign-in OK — TOKEN salvo.');",
+          "  } else {",
+          "    console.error('Auto sign-in falhou (status ' + res.code + '):', JSON.stringify(json));",
+          "  }",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth (Better Auth)",
+      "item": [
+        {
+          "name": "Sign Up",
+          "request": {
+            "method": "POST",
+            "url": "{{APP_URL}}/api/auth/sign-up/email",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"João Silva\",\n  \"email\": \"joao@salao.com.br\",\n  \"password\": \"Senha@123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Sign In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('TOKEN', json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{APP_URL}}/api/auth/sign-in/email",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao@salao.com.br\",\n  \"password\": \"Senha@123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Session",
+          "request": {
+            "method": "GET",
+            "url": "{{APP_URL}}/api/auth/get-session",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Sign Out",
+          "request": {
+            "method": "POST",
+            "url": "{{APP_URL}}/api/auth/sign-out",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "Create Organization",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/api/organizations",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Studio Centro\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Current Organization",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/organizations/current",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Salons",
+      "item": [
+        {
+          "name": "List Salons",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/salons",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Create Salon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.salonId) pm.collectionVariables.set('salonId', json.salonId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/api/salons",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Studio Centro\",\n  \"endereco\": \"Rua das Flores, 100\",\n  \"cidade\": \"São Paulo\",\n  \"telefone\": \"(11) 91234-5678\",\n  \"horario\": \"Seg-Sex 09:00-19:00\",\n  \"cadeiras\": 5,\n  \"principal\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Salon",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/salons/{{salonId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Update Salon",
+          "request": {
+            "method": "PUT",
+            "url": "{{BASE_URL}}/api/salons/{{salonId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Studio Centro Atualizado\",\n  \"cadeiras\": 8\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Salon",
+          "request": {
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/api/salons/{{salonId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "item": [
+        {
+          "name": "List Clients",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/clients",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "clients"],
+              "query": [
+                { "key": "page", "value": "1", "disabled": true },
+                { "key": "limit", "value": "20", "disabled": true },
+                { "key": "busca", "value": "", "disabled": true },
+                { "key": "status", "value": "ativo", "disabled": true }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Create Client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.clientId) pm.collectionVariables.set('clientId', json.clientId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/api/clients",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Maria Oliveira\",\n  \"email\": \"maria@email.com\",\n  \"telefone\": \"(11) 99876-5432\",\n  \"status\": \"novo\",\n  \"aniversario\": \"1990-05-15\",\n  \"servicoFavorito\": \"Corte\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Client",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/clients/{{clientId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Update Client",
+          "request": {
+            "method": "PUT",
+            "url": "{{BASE_URL}}/api/clients/{{clientId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Maria Oliveira\",\n  \"status\": \"vip\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Client",
+          "request": {
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/api/clients/{{clientId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Professionals",
+      "item": [
+        {
+          "name": "List Professionals",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/professionals",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "professionals"],
+              "query": [
+                { "key": "salonId", "value": "{{salonId}}", "disabled": true },
+                { "key": "status", "value": "ativo", "disabled": true }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Create Professional",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.professionalId) pm.collectionVariables.set('professionalId', json.professionalId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/api/professionals",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Carlos Barbeiro\",\n  \"especialidade\": \"Corte masculino\",\n  \"email\": \"carlos@salao.com\",\n  \"telefone\": \"(11) 91111-2222\",\n  \"salonId\": \"{{salonId}}\",\n  \"status\": \"ativo\",\n  \"comissao\": 40,\n  \"servicos\": [],\n  \"dias\": [\"segunda\", \"terca\", \"quarta\", \"quinta\", \"sexta\"],\n  \"horario\": \"09:00-18:00\",\n  \"desde\": \"2024-01-01\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Professional",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/professionals/{{professionalId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Update Professional",
+          "request": {
+            "method": "PUT",
+            "url": "{{BASE_URL}}/api/professionals/{{professionalId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Carlos Barbeiro\",\n  \"comissao\": 45,\n  \"status\": \"ativo\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Professional",
+          "request": {
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/api/professionals/{{professionalId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Services",
+      "item": [
+        {
+          "name": "List Services",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/services",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "services"],
+              "query": [
+                { "key": "categoria", "value": "Cortes", "disabled": true },
+                { "key": "ativo", "value": "true", "disabled": true }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Create Service",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.serviceId) pm.collectionVariables.set('serviceId', json.serviceId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/api/services",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Corte Masculino\",\n  \"categoria\": \"Cortes\",\n  \"duracao\": 30,\n  \"preco\": 45.00,\n  \"comissao\": 40\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Service",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/services/{{serviceId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Update Service",
+          "request": {
+            "method": "PUT",
+            "url": "{{BASE_URL}}/api/services/{{serviceId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Corte Masculino\",\n  \"categoria\": \"Cortes\",\n  \"duracao\": 30,\n  \"preco\": 50.00,\n  \"comissao\": 40\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Service",
+          "request": {
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/api/services/{{serviceId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "List Appointments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/appointments",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "appointments"],
+              "query": [
+                { "key": "salonId", "value": "{{salonId}}", "disabled": true },
+                { "key": "professionalId", "value": "", "disabled": true },
+                { "key": "clientId", "value": "", "disabled": true },
+                { "key": "data", "value": "2026-08-14", "disabled": true },
+                { "key": "status", "value": "scheduled", "disabled": true }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Create Appointment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.appointmentId) pm.collectionVariables.set('appointmentId', json.appointmentId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/api/appointments",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"salonId\": \"{{salonId}}\",\n  \"professionalId\": \"{{professionalId}}\",\n  \"clientId\": \"{{clientId}}\",\n  \"serviceId\": \"{{serviceId}}\",\n  \"data\": \"2026-08-20\",\n  \"inicio\": \"10:00\",\n  \"observacoes\": \"Cliente prefere corte curto\",\n  \"valor\": 45.00\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Appointment",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/appointments/{{appointmentId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Update Appointment Status",
+          "request": {
+            "method": "PATCH",
+            "url": "{{BASE_URL}}/api/appointments/{{appointmentId}}/status",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmado\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/api/appointments/{{appointmentId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "List Transactions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/transactions",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "transactions"],
+              "query": [
+                { "key": "page", "value": "1", "disabled": true },
+                { "key": "limit", "value": "20", "disabled": true },
+                { "key": "forma", "value": "Pix", "disabled": true }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Create Transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.transactionId) pm.collectionVariables.set('transactionId', json.transactionId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/api/transactions",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": \"{{clientId}}\",\n  \"profissionalId\": \"{{professionalId}}\",\n  \"appointmentId\": \"{{appointmentId}}\",\n  \"servico\": \"Corte Masculino\",\n  \"valor\": 45.00,\n  \"forma\": \"Pix\",\n  \"data\": \"2026-08-14\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Transaction Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/transactions/resumo",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "transactions", "resumo"],
+              "query": [
+                { "key": "inicio", "value": "2026-08-01", "disabled": true },
+                { "key": "fim", "value": "2026-08-31", "disabled": true }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Get Transaction",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/transactions/{{transactionId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Metrics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/dashboard/metrics",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "dashboard", "metrics"],
+              "query": [
+                { "key": "salonId", "value": "{{salonId}}", "disabled": true }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Get Insights",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/dashboard/insights",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "dashboard", "insights"],
+              "query": [
+                { "key": "salonId", "value": "{{salonId}}", "disabled": true }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "List Alerts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/alerts",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "alerts"],
+              "query": [
+                { "key": "lido", "value": "false", "disabled": true }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Generate Alerts",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/api/alerts/generate",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Mark Alert as Read",
+          "request": {
+            "method": "PATCH",
+            "url": "{{BASE_URL}}/api/alerts/{{alertId}}/read",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+          }
+        }
+      ]
+    }
+  ]
+}
