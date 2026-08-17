@@ -12,7 +12,19 @@ export async function appointmentRoutes(fastify: FastifyInstance) {
   fastify.addHook("preHandler", authenticate)
 
   fastify.get("/", listAppointmentsController)
-  fastify.post("/", createAppointmentController)
+  fastify.post(
+    "/",
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: 60_000,
+          keyGenerator: (req) => `appointments:${req.ip}`,
+        },
+      },
+    },
+    createAppointmentController,
+  )
   fastify.get("/:id", getAppointmentController)
   fastify.patch("/:id/status", updateAppointmentStatusController)
   fastify.delete("/:id", cancelAppointmentController)

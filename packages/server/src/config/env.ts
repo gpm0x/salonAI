@@ -18,4 +18,5 @@ export const env = {
   stripeSecretKey: optional("STRIPE_SECRET_KEY"),
   stripeWebhookSecret: optional("STRIPE_WEBHOOK_SECRET"),
   publicApiKey: optional("PUBLIC_API_KEY"),
+  redisUrl: optional("REDIS_URL"),
 }

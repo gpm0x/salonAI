@@ -3,6 +3,8 @@ import cors from "@fastify/cors"
 import helmet from "@fastify/helmet"
 import rateLimit from "@fastify/rate-limit"
 import sensible from "@fastify/sensible"
+import Redis from "ioredis"
+import { env } from "./config/env"
 import {
   serializerCompiler,
   validatorCompiler,
@@ -19,6 +21,8 @@ import { appointmentRoutes } from "./modules/appointments/presentation/appointme
 import { transactionRoutes } from "./modules/transactions/presentation/transaction.routes"
 import { dashboardRoutes } from "./modules/dashboard/presentation/dashboard.routes"
 import { alertRoutes } from "./modules/alerts/presentation/alert.routes"
+import { authRoutes } from "./modules/auth/auth.routes"
+import { stripeWebhookRoutes } from "./webhooks/stripe.webhook"
 
 export async function buildApp() {
   const app = Fastify({
@@ -28,6 +32,8 @@ export async function buildApp() {
         ? { target: "pino-pretty", options: { colorize: true } }
         : undefined,
     },
+    // Normalizes //api/auth/sign-in → /api/auth/sign-in (mitigates path-based rate limit bypass)
+    ignoreDuplicateSlashes: true,
   })
 
   app.setValidatorCompiler(validatorCompiler)
@@ -38,13 +44,22 @@ export async function buildApp() {
     crossOriginEmbedderPolicy: false,
   })
 
+  const redis = env.redisUrl ? new Redis(env.redisUrl, { lazyConnect: true, enableOfflineQueue: false }) : undefined
+  if (redis) {
+    redis.on("error", (err) => app.log.error({ err }, "Redis rate-limit connection error"))
+  }
+
   await app.register(rateLimit, {
     global: true,
     max: 200,
     timeWindow: "1 minute",
-    errorResponseBuilder: () => ({
+    redis,
+    addHeadersOnExceeding: { "x-ratelimit-limit": true, "x-ratelimit-remaining": true, "x-ratelimit-reset": true },
+    addHeaders: { "x-ratelimit-limit": true, "x-ratelimit-remaining": true, "x-ratelimit-reset": true, "retry-after": true },
+    errorResponseBuilder: (_req, context) => ({
       code: "RATE_LIMIT",
       message: "Muitas requisições. Tente novamente em instantes.",
+      retryAfterMs: context.ttl,
     }),
   })
 
@@ -66,6 +81,7 @@ export async function buildApp() {
 
   app.get("/health", async () => ({ status: "ok" }))
 
+  await app.register(authRoutes, { prefix: "/api/auth" })
   await app.register(organizationRoutes, { prefix: "/api/organizations" })
   await app.register(salonRoutes, { prefix: "/api/salons" })
   await app.register(serviceRoutes, { prefix: "/api/services" })
@@ -75,6 +91,7 @@ export async function buildApp() {
   await app.register(transactionRoutes, { prefix: "/api/transactions" })
   await app.register(dashboardRoutes, { prefix: "/api/dashboard" })
   await app.register(alertRoutes, { prefix: "/api/alerts" })
+  await app.register(stripeWebhookRoutes, { prefix: "/webhooks/stripe" })
 
   return app
 }
