@@ -44,9 +44,18 @@ export async function buildApp() {
     crossOriginEmbedderPolicy: false,
   })
 
-  const redis = env.redisUrl ? new Redis(env.redisUrl, { lazyConnect: true, enableOfflineQueue: false }) : undefined
-  if (redis) {
-    redis.on("error", (err) => app.log.error({ err }, "Redis rate-limit connection error"))
+  let redis: Redis | undefined = undefined
+  if (env.redisUrl) {
+    const redisClient = new Redis(env.redisUrl, { lazyConnect: true, enableOfflineQueue: false })
+    redisClient.on("error", (err) => app.log.error({ err }, "Redis rate-limit connection error"))
+    try {
+      await redisClient.connect()
+      redis = redisClient
+      app.log.info("Redis conectado para rate limiting distribuído")
+    } catch {
+      app.log.warn("Redis indisponível — rate limiting via memória local")
+      redisClient.disconnect()
+    }
   }
 
   await app.register(rateLimit, {
