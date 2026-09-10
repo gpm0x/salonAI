@@ -1,0 +1,341 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Paleta "Meia-noite & Vermelhão"
+  ------------------------------------------------------------------
+  #1A1A2E  meia-noite   240 28% 14%   fundo escuro / tinta clara
+  #F5F5F0  osso          60 20% 95%   papel / tinta escura
+  #2980B9  aço          204 64% 44%   ação (primary): botões, links, foco
+  #E74C3C  vermelhão      6 78% 57%   energia (accent): destaque de marca
+  #C0392B  telha          6 63% 46%   alerta (danger)
+  #D4AF37  ouro          46 65% 52%   premium: assinatura, IA, conquistas
+
+  Os tons de texto são ajustados em luminosidade em relação ao hex
+  original quando o valor exato não alcança contraste AA sobre o fundo
+  do tema — os fills (bg-*) mantêm o hex da paleta.
+*/
+
+:root {
+  color-scheme: light;
+
+  /* Tema claro "Papel" — osso, tinta meia-noite */
+  --bg: 60 20% 95%;
+  --surface: 55 30% 99%;
+  --ink: 240 28% 14%;
+  --muted: 240 12% 44%;
+  --line: 240 14% 87%;
+
+  /* Ação — aço */
+  --primary: 204 64% 44%;
+  --primary-fg: 60 20% 97%;
+  --primary-soft: 204 58% 93%;
+
+  /* Marca — vermelhão (escurecido p/ texto legível sobre osso) */
+  --accent: 6 74% 50%;
+  --accent-fg: 60 20% 97%;
+  --accent-soft: 6 62% 94%;
+
+  /* Premium — ouro. `gold` p/ texto, `gold-solid` p/ preenchimento */
+  --gold: 40 72% 34%;
+  --gold-solid: 46 65% 52%;
+  --gold-fg: 240 28% 12%;
+  --gold-soft: 46 60% 92%;
+
+  /*
+    A paleta não define cor de estado positivo. Jade dessaturado,
+    calibrado na mesma temperatura da paleta, para que "receita subiu"
+    não colida com o aço (ação) nem com o vermelhão (marca).
+  */
+  --success: 168 56% 30%;
+  --danger: 6 63% 46%;
+
+  /* Véu de modais/dropdowns */
+  --overlay: 240 30% 10%;
+
+  /* Sombras — cor e intensidade acompanham o tema */
+  --shadow: 240 40% 12%;
+  --shadow-1: 0.06;
+  --shadow-2: 0.22;
+  --shadow-3: 0.28;
+
+  /* Painel de marca (login/cadastro): meia-noite nos dois temas */
+  --brand: 240 28% 14%;
+  --brand-fg: 60 20% 95%;
+  --brand-aurora: 0.4;
+
+  /* Intensidade do grão, da grade e das auroras do fundo */
+  --grao: 0.03;
+  --grade: 0.028;
+  --aurora-accent: 0.09;
+  --aurora-primary: 0.1;
+  --aurora-gold: 0.07;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Tema escuro "Meia-noite" — o #1A1A2E como superfície */
+  --bg: 240 30% 9%;
+  --surface: 240 26% 14%;
+  --ink: 60 20% 95%;
+  --muted: 240 10% 66%;
+  --line: 240 18% 23%;
+
+  --primary: 204 70% 57%;
+  --primary-fg: 240 30% 10%;
+  --primary-soft: 208 38% 21%;
+
+  --accent: 6 80% 63%;
+  --accent-fg: 240 30% 10%;
+  --accent-soft: 6 40% 23%;
+
+  --gold: 46 70% 62%;
+  --gold-solid: 46 65% 52%;
+  --gold-fg: 240 28% 10%;
+  --gold-soft: 44 34% 20%;
+
+  --success: 166 50% 50%;
+  --danger: 6 76% 63%;
+
+  --overlay: 240 40% 4%;
+
+  --shadow: 240 60% 2%;
+  --shadow-1: 0.4;
+  --shadow-2: 0.7;
+  --shadow-3: 0.8;
+
+  --brand: 240 30% 11%;
+  --brand-fg: 60 20% 95%;
+  --brand-aurora: 0.3;
+
+  --grao: 0.05;
+  --grade: 0.05;
+  --aurora-accent: 0.13;
+  --aurora-primary: 0.14;
+  --aurora-gold: 0.08;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--line));
+  }
+
+  /*
+    `clip` e não `hidden`: os dois cortam o estouro horizontal (uma tabela
+    larga demais, um dropdown que passa da borda no celular), mas `hidden`
+    transforma o elemento em contêiner de rolagem e mataria o `position:
+    sticky` da barra lateral e da topbar.
+  */
+  html {
+    overflow-x: clip;
+  }
+
+  body {
+    background-color: hsl(var(--bg));
+    color: hsl(var(--ink));
+    font-family: var(--font-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+    /* Sem o flash cinza do Chrome Android a cada toque */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+    Atmosfera do fundo em duas camadas fixas na viewport, e não em
+    `background-attachment: fixed` no body: o iOS Safari trata esse valor como
+    `scroll`, e os gradientes — dimensionados em px — acabavam esticados pela
+    altura inteira do documento no celular.
+
+    Ordem de pintura: ::before (auroras e grade) e depois ::after (grão), que é
+    a sobreposição certa. O conteúdo das páginas fica em z-10, acima das duas.
+  */
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  body::before {
+    background-image:
+      /* Auroras: vermelhão no alto, aço à esquerda, ouro no rodapé */
+      radial-gradient(
+        1000px 620px at 92% -10%,
+        hsl(var(--accent) / var(--aurora-accent)),
+        transparent 62%
+      ),
+      radial-gradient(
+        880px 640px at -8% 2%,
+        hsl(var(--primary) / var(--aurora-primary)),
+        transparent 58%
+      ),
+      radial-gradient(
+        760px 520px at 40% 108%,
+        hsl(var(--gold-solid) / var(--aurora-gold)),
+        transparent 60%
+      ),
+      /* Grade de blueprint — dá o ar de console/painel */
+        repeating-linear-gradient(
+          to right,
+          hsl(var(--ink) / var(--grade)) 0 1px,
+          transparent 1px 88px
+        ),
+      repeating-linear-gradient(
+        to bottom,
+        hsl(var(--ink) / var(--grade)) 0 1px,
+        transparent 1px 88px
+      );
+  }
+
+  /* Grão têxtil sutil, dá profundidade sem pesar */
+  body::after {
+    opacity: var(--grao);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /*
+    O Safari do iPhone dá zoom automático em qualquer campo com fonte abaixo de
+    16px — e não volta sozinho depois. O painel usa 14px em quase todo input,
+    então a regra vale só no celular; do `sm` para cima a densidade original
+    permanece.
+  */
+  @media (max-width: 639px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  /* Títulos: grotesca de display, apertada e com peso — cara de SaaS */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  ::selection {
+    background: hsl(var(--accent) / 0.2);
+  }
+
+  /* Barra de rolagem acompanha o tema */
+  * {
+    scrollbar-color: hsl(var(--ink) / 0.2) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--ink) / 0.18);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--ink) / 0.3);
+  }
+}
+
+/* Transição suave ao trocar de tema — só enquanto a troca acontece */
+.trocando-tema,
+.trocando-tema *,
+.trocando-tema *::before,
+.trocando-tema *::after {
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease,
+    fill 220ms ease,
+    stroke 220ms ease !important;
+  transition-delay: 0ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trocando-tema,
+  .trocando-tema *,
+  .trocando-tema *::before,
+  .trocando-tema *::after {
+    transition: none !important;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Traços de números tabulares para métricas alinhadas */
+  .nums {
+    font-feature-settings: "tnum" 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.015em;
+  }
+  /* Assinatura da marca — Bricolage no peso máximo, bem apertada */
+  .wordmark {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.045em;
+  }
+  /* Rótulos de seção em versalete largo — assinatura tipográfica do painel */
+  .eyebrow {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+}
+
+/*
+  Escopo de paleta: azul puro
+  ------------------------------------------------------------------
+  Usado pelas telas de autenticação (`app/(auth)/layout.tsx`). Em vez de
+  trocar `text-accent` por `text-primary` em vinte componentes, o escopo
+  reescreve os próprios tokens: os papéis continuam os mesmos — accent é
+  a energia da marca, gold é o momento de conquista — só que resolvidos
+  em azul. Os componentes seguem semânticos e o painel interno, que fica
+  fora deste escopo, mantém vermelhão e ouro.
+
+  Os quatro azuis são separados por temperatura e valor, não por matiz
+  próximo, senão a tela vira um borrão monocromático:
+
+    accent   ciano elétrico   destaques, brasa, etapa ativa
+    primary  aço (herdado)    ações: botões e links
+    gold     azul-céu         selo de conquista, avatar
+    success  azul-marinho     confirmações
+
+  `danger` continua vermelho de propósito: ali a cor é aviso, não
+  decoração — erro de validação em azul deixa de ser lido como erro.
+*/
+.paleta-azul {
+  --accent: 193 95% 31%;
+  --accent-fg: 60 20% 97%;
+  --accent-soft: 193 62% 92%;
+
+  --gold: 214 62% 38%;
+  --gold-solid: 204 72% 52%;
+  --gold-fg: 60 20% 97%;
+  --gold-soft: 204 60% 93%;
+
+  --success: 215 62% 36%;
+}
+
+.dark .paleta-azul {
+  --accent: 189 88% 55%;
+  --accent-fg: 240 30% 10%;
+  --accent-soft: 191 45% 21%;
+
+  --gold: 203 78% 70%;
+  --gold-solid: 202 70% 58%;
+  --gold-fg: 240 28% 10%;
+  --gold-soft: 204 40% 21%;
+
+  --success: 208 72% 64%;
+}

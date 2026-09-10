@@ -18,3 +18,6 @@ src/generated/
 # logs / os
 *.log
 .DS_Store
+
+# build artifacts
+*.tsbuildinfo
