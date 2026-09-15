@@ -104,7 +104,7 @@ export function NovoClienteModal({
       totalGasto: cliente?.totalGasto ?? 0,
       servicoFavorito: form.servicoFavorito.trim() || "—",
       profissionalPreferido: form.profissionalPreferido || "—",
-      aniversario: form.aniversario || "01-01",
+      aniversario: form.aniversario || "",
     };
 
     onSalvar(novo);
