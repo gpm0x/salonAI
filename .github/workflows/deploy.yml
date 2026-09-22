@@ -1,0 +1,100 @@
+name: Deploy
+
+# Só dispara depois que o workflow CI terminar com sucesso na main. Isso
+# garante que nunca fazemos deploy de um commit que não passou por
+# typecheck/lint/build (o gate fica no CI, não duplicado aqui).
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Run database migrations
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      # O projeto ainda não tem pasta de migrations (Prisma Migrate): o
+      # schema é sincronizado direto com `db push`, sem histórico versionado.
+      # Quando o projeto adotar `prisma migrate`, troque esta linha por:
+      #   pnpm --filter @salon/api exec prisma migrate deploy
+      - name: Apply schema (prisma db push)
+        run: pnpm --filter @salon/api exec prisma db push
+
+  deploy-web:
+    name: Deploy Web (Vercel)
+    needs: migrate
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # `vercel build` já roda o install/build dentro do ambiente do próprio
+      # Vercel (respeitando o Root Directory configurado no projeto), então
+      # este job não precisa instalar o monorepo inteiro com pnpm.
+      - name: Pull Vercel environment
+        run: npx vercel@latest pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build project artifacts
+        run: npx vercel@latest build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy prebuilt to Vercel
+        run: npx vercel@latest deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+  deploy-api-render:
+    name: Deploy API (Render deploy hook)
+    needs: migrate
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      # A API (Fastify) não roda na Vercel. Em produção ela mora no Render,
+      # que já faz redeploy automático em push na branch conectada ao serviço.
+      # Este step é só um fallback/gatilho explícito via deploy hook e não faz
+      # nada se o secret RENDER_DEPLOY_HOOK_URL não estiver configurado no
+      # repo (deploy do Render continua funcionando pelo trigger nativo dele).
+      - name: Trigger Render deploy hook
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        if: ${{ env.RENDER_DEPLOY_HOOK_URL != '' }}
+        run: curl -fsSL -X POST "$RENDER_DEPLOY_HOOK_URL"
