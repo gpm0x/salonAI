@@ -8,11 +8,19 @@ import { UpdateClientUseCase } from "../application/use-cases/update-client.use-
 import { DeleteClientUseCase } from "../application/use-cases/delete-client.use-case"
 import { createClientSchema } from "../application/dtos/create-client.dto"
 import { updateClientSchema } from "../application/dtos/update-client.dto"
+import { listClientsQuerySchema } from "../application/dtos/list-clients-query.dto"
 
 const makeRepo = () => new PrismaClientRepository(prisma)
 
-export async function listClientsController(request: FastifyRequest, reply: FastifyReply) {
-  const result = await new ListClientsUseCase(makeRepo()).execute({ organizationId: request.organizationId })
+export async function listClientsController(
+  request: FastifyRequest<{ Querystring: { search?: string } }>,
+  reply: FastifyReply,
+) {
+  const { search } = listClientsQuerySchema.parse(request.query)
+  const result = await new ListClientsUseCase(makeRepo()).execute({
+    organizationId: request.organizationId,
+    search,
+  })
   return reply.send(result)
 }
 

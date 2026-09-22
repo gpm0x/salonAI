@@ -3,6 +3,7 @@ import type { IClientRepository } from "../../domain/client.repository"
 import { Client } from "../../domain/client.entity"
 import type { UpdateClientInput } from "../dtos/update-client.dto"
 import { NotFoundError } from "@/shared/domain/errors"
+import { Email, Phone } from "@/shared/domain/value-objects"
 
 interface Input extends UpdateClientInput { id: string; organizationId: string }
 
@@ -17,8 +18,8 @@ export class UpdateClientUseCase implements UseCase<Input, void> {
       {
         organizationId,
         name: data.nome ?? existing.name,
-        email: data.email !== undefined ? (data.email ?? undefined) : existing.email,
-        phone: data.telefone !== undefined ? (data.telefone ?? undefined) : existing.phone,
+        email: data.email !== undefined ? (data.email ? Email.create(data.email) : undefined) : existing.email,
+        phone: data.telefone !== undefined ? (data.telefone ? Phone.create(data.telefone) : undefined) : existing.phone,
         status: data.status ?? existing.status,
         birthday: data.aniversario !== undefined ? (data.aniversario ?? undefined) : existing.birthday,
         favoriteService: data.servicoFavorito !== undefined ? (data.servicoFavorito ?? undefined) : existing.favoriteService,

@@ -1,7 +1,8 @@
-import type { PrismaClient } from "@prisma/client"
+import type { Prisma, PrismaClient } from "@prisma/client"
 import { Client } from "../../domain/client.entity"
 import type { IClientRepository } from "../../domain/client.repository"
 import type { ClientItemDTO } from "../../application/dtos/client-item.dto"
+import { Email, Phone } from "@/shared/domain/value-objects"
 
 type ClientRow = {
   id: string; organizationId: string; name: string; email: string | null
@@ -19,8 +20,8 @@ export class PrismaClientRepository implements IClientRepository {
         id: c.id,
         organizationId: c.organizationId,
         name: c.name,
-        email: c.email ?? null,
-        phone: c.phone ?? null,
+        email: c.email?.toString() ?? null,
+        phone: c.phone?.toString() ?? null,
         status: c.status,
         birthday: c.birthday ?? null,
         favoriteService: c.favoriteService ?? null,
@@ -29,9 +30,22 @@ export class PrismaClientRepository implements IClientRepository {
     })
   }
 
-  async list(organizationId: string, _monthStart: Date, _monthEnd: Date): Promise<ClientItemDTO[]> {
+  async list(organizationId: string, _monthStart: Date, _monthEnd: Date, search?: string): Promise<ClientItemDTO[]> {
+    const where: Prisma.ClientWhereInput = { organizationId, status: { not: "inativo" } }
+
+    if (search) {
+      const digits = search.replace(/\D/g, "")
+      const orConditions: Prisma.ClientWhereInput[] = [
+        { name: { contains: search, mode: "insensitive" } },
+      ]
+      if (digits.length > 0) {
+        orConditions.push({ phone: { contains: digits } })
+      }
+      where.OR = orConditions
+    }
+
     const rows = await this.prisma.client.findMany({
-      where: { organizationId, status: { not: "inativo" } },
+      where,
       orderBy: { createdAt: "desc" },
       include: {
         preferredProfessional: { select: { name: true } },
@@ -73,8 +87,8 @@ export class PrismaClientRepository implements IClientRepository {
       where: { id: c.id },
       data: {
         name: c.name,
-        email: c.email ?? null,
-        phone: c.phone ?? null,
+        email: c.email?.toString() ?? null,
+        phone: c.phone?.toString() ?? null,
         status: c.status,
         birthday: c.birthday ?? null,
         favoriteService: c.favoriteService ?? null,
@@ -88,6 +102,23 @@ export class PrismaClientRepository implements IClientRepository {
       where: { id, organizationId },
       data: { status: "inativo" },
     })
+  }
+
+  async findOrCreateByPhone(organizationId: string, phone: string, name: string): Promise<Client> {
+    const digits = Phone.create(phone).toString()
+    const existing = await this.prisma.client.findFirst({
+      where: { organizationId, phone: digits },
+    })
+    if (existing) return this.toEntity(existing)
+
+    const client = Client.create({
+      organizationId,
+      name,
+      phone: Phone.create(digits),
+      status: "novo",
+    })
+    await this.create(client)
+    return client
   }
 
   private toDTO(
@@ -121,8 +152,8 @@ export class PrismaClientRepository implements IClientRepository {
       {
         organizationId: row.organizationId,
         name: row.name,
-        email: row.email ?? undefined,
-        phone: row.phone ?? undefined,
+        email: row.email ? Email.create(row.email) : undefined,
+        phone: row.phone ? Phone.create(row.phone) : undefined,
         status: row.status,
         birthday: row.birthday ?? undefined,
         favoriteService: row.favoriteService ?? undefined,

@@ -48,30 +48,28 @@ function formatData(iso: string) {
 
 interface ListaClientesProps {
   clientes: Cliente[];
+  busca: string;
+  onBuscaChange: (busca: string) => void;
   onEditar: (c: Cliente) => void;
   onExcluir: (c: Cliente) => void;
 }
 
 export function ListaClientes({
   clientes,
+  busca,
+  onBuscaChange,
   onEditar,
   onExcluir,
 }: ListaClientesProps) {
-  const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"todos" | StatusCliente>("todos");
 
+  // A busca por nome/telefone já vem filtrada pela API (debounced); aqui só
+  // resta aplicar o filtro de status, que é puramente local.
   const lista = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    return clientes.filter((c) => {
-      const casaFiltro = filtro === "todos" || c.status === filtro;
-      const casaBusca =
-        termo === "" ||
-        c.nome.toLowerCase().includes(termo) ||
-        c.email.toLowerCase().includes(termo) ||
-        c.telefone.includes(termo);
-      return casaFiltro && casaBusca;
-    });
-  }, [busca, filtro, clientes]);
+    return clientes.filter(
+      (c) => filtro === "todos" || c.status === filtro,
+    );
+  }, [filtro, clientes]);
 
   return (
     <Card className="flex flex-col p-6">
@@ -85,8 +83,8 @@ export function ListaClientes({
           />
           <input
             value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome, e-mail ou telefone…"
+            onChange={(e) => onBuscaChange(e.target.value)}
+            placeholder="Buscar por nome ou telefone…"
             className="h-10 w-full rounded-full border border-line bg-surface pl-10 pr-4 text-sm text-ink placeholder:text-muted/70 focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/10"
           />
         </div>

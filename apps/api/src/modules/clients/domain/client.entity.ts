@@ -1,10 +1,11 @@
 import { Entity } from "@/shared/domain/entity"
+import type { Email, Phone } from "@/shared/domain/value-objects"
 
 interface ClientProps {
   organizationId: string
   name: string
-  email?: string
-  phone?: string
+  email?: Email
+  phone?: Phone
   status: string
   birthday?: string
   favoriteService?: string
