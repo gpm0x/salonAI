@@ -1,5 +1,6 @@
 import type { UseCase } from "@/shared/application/use-case"
 import type { IProfessionalRepository } from "../../domain/professional.repository"
+import type { ISalonRepository } from "@/modules/salons/domain/salon.repository"
 import { Professional } from "../../domain/professional.entity"
 import type { UpdateProfessionalInput } from "../dtos/update-professional.dto"
 import { NotFoundError } from "@/shared/domain/errors"
@@ -7,11 +8,19 @@ import { NotFoundError } from "@/shared/domain/errors"
 interface Input extends UpdateProfessionalInput { id: string; organizationId: string }
 
 export class UpdateProfessionalUseCase implements UseCase<Input, void> {
-  constructor(private readonly repo: IProfessionalRepository) {}
+  constructor(
+    private readonly repo: IProfessionalRepository,
+    private readonly salonRepo: ISalonRepository,
+  ) {}
 
   async execute({ id, organizationId, ...data }: Input): Promise<void> {
     const existing = await this.repo.findById(id, organizationId)
     if (!existing) throw new NotFoundError("Profissional nao encontrado")
+
+    if (data.salonId) {
+      const salon = await this.salonRepo.findById(data.salonId, organizationId)
+      if (!salon) throw new NotFoundError("Unidade nao encontrada")
+    }
 
     const updated = new Professional(
       {

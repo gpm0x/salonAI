@@ -1,5 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify"
 import { prisma } from "@/shared/infrastructure/prisma/client"
+import { PrismaSalonRepository } from "@/modules/salons/infra/prisma/prisma-salon.repository"
 import { PrismaProfessionalRepository } from "../infra/prisma/prisma-professional.repository"
 import { ListProfessionalsUseCase } from "../application/use-cases/list-professionals.use-case"
 import { GetProfessionalUseCase } from "../application/use-cases/get-professional.use-case"
@@ -10,6 +11,7 @@ import { createProfessionalSchema } from "../application/dtos/create-professiona
 import { updateProfessionalSchema } from "../application/dtos/update-professional.dto"
 
 const makeRepo = () => new PrismaProfessionalRepository(prisma)
+const makeSalonRepo = () => new PrismaSalonRepository(prisma)
 
 export async function listProfessionalsController(request: FastifyRequest, reply: FastifyReply) {
   const result = await new ListProfessionalsUseCase(makeRepo()).execute({ organizationId: request.organizationId })
@@ -29,7 +31,7 @@ export async function getProfessionalController(
 
 export async function createProfessionalController(request: FastifyRequest, reply: FastifyReply) {
   const input = createProfessionalSchema.parse(request.body)
-  const { professionalId } = await new CreateProfessionalUseCase(makeRepo()).execute({
+  const { professionalId } = await new CreateProfessionalUseCase(makeRepo(), makeSalonRepo()).execute({
     ...input,
     organizationId: request.organizationId,
   })
@@ -41,7 +43,7 @@ export async function updateProfessionalController(
   reply: FastifyReply,
 ) {
   const input = updateProfessionalSchema.parse(request.body)
-  await new UpdateProfessionalUseCase(makeRepo()).execute({
+  await new UpdateProfessionalUseCase(makeRepo(), makeSalonRepo()).execute({
     id: request.params.id,
     organizationId: request.organizationId,
     ...input,

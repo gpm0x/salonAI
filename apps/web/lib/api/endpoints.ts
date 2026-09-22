@@ -2,12 +2,14 @@
  * Único lugar onde os caminhos da API aparecem como string.
  *
  * Espelha os prefixos registrados em `apps/api/src/app.ts`. Se uma rota mudar
- * lá, o typecheck do front não acusa — mas só um arquivo precisa mudar aqui.
+ * lá, o typecheck do front não acusa: mas só um arquivo precisa mudar aqui.
  */
 export const endpoints = {
   organizations: {
     root: "/api/organizations",
     current: "/api/organizations/current",
+    members: "/api/organizations/members",
+    memberRole: (userId: string) => `/api/organizations/members/${userId}/role`,
   },
   dashboard: {
     metrics: "/api/dashboard/metrics",
@@ -21,6 +23,7 @@ export const endpoints = {
     root: "/api/appointments",
     byId: (id: string) => `/api/appointments/${id}`,
     status: (id: string) => `/api/appointments/${id}/status`,
+    complete: (id: string) => `/api/appointments/${id}/complete`,
   },
   professionals: {
     root: "/api/professionals",
@@ -37,12 +40,25 @@ export const endpoints = {
   transactions: {
     root: "/api/transactions",
     resumo: "/api/transactions/resumo",
+    report: "/api/transactions/report",
     byId: (id: string) => `/api/transactions/${id}`,
   },
   alerts: {
     root: "/api/alerts",
     generate: "/api/alerts/generate",
     read: (id: string) => `/api/alerts/${id}/read`,
+  },
+  onboarding: {
+    status: "/api/onboarding/status",
+  },
+  public: {
+    salon: (slug: string) => `/api/public/salons/${slug}`,
+    availability: (slug: string) => `/api/public/salons/${slug}/availability`,
+    appointments: "/api/public/appointments",
+  },
+  billing: {
+    checkout: "/api/billing/checkout",
+    portal: "/api/billing/portal",
   },
 } as const;
 
@@ -52,13 +68,17 @@ export const endpoints = {
  * dependa de um array literal repetido em dois lugares.
  */
 export const qk = {
-  organization: { current: ["organization", "current"] as const },
+  organization: {
+    current: ["organization", "current"] as const,
+    members: ["organization", "members"] as const,
+  },
   dashboard: {
     metrics: ["dashboard", "metrics"] as const,
     insights: ["dashboard", "insights"] as const,
   },
   clients: {
     all: ["clients"] as const,
+    list: (search?: string) => ["clients", { search: search ?? "" }] as const,
     detail: (id: string) => ["clients", id] as const,
   },
   appointments: {
@@ -86,4 +106,5 @@ export const qk = {
       ["transactions", "resumo", { mes: mes ?? "atual" }] as const,
   },
   alerts: { all: ["alerts"] as const },
+  onboarding: { status: ["onboarding", "status"] as const },
 } as const;

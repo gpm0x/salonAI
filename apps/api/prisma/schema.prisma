@@ -11,18 +11,25 @@ datasource db {
 // ────────────────────────────────────────────────────────
 
 model User {
-  id            String    @id
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id             String   @id
+  name           String
+  email          String   @unique
+  emailVerified  Boolean  @default(false)
+  image          String?
+  // Role so tem efeito combinada com organizationId (isolamento por tenant).
+  // Staff nasce sempre via PATCH /organizations/members/:userId/role por um admin,
+  // nunca no cadastro (Better Auth cria com role "admin" por padrao).
+  role           String   @default("admin")
+  organizationId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  sessions      Session[]
-  accounts      Account[]
-  organizations Organization[]
+  sessions           Session[]
+  accounts           Account[]
+  ownedOrganizations Organization[] @relation("OrganizationOwner")
+  organization       Organization?  @relation("OrganizationMembers", fields: [organizationId], references: [id], onDelete: SetNull)
 
+  @@index([organizationId])
   @@map("user")
 }
 
@@ -82,12 +89,13 @@ model Organization {
   ownerId              String
   slug                 String?  @unique
   subscriptionStatus   String   @default("trialing")
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner         User           @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members       User[]         @relation("OrganizationMembers")
   salons        Salon[]
   professionals Professional[]
   clients       Client[]
@@ -104,6 +112,7 @@ model Salon {
   id             String   @id @default(uuid())
   organizationId String
   name           String
+  slug           String   @unique
   address        String?
   city           String?
   phone          String?

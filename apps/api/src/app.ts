@@ -21,7 +21,10 @@ import { appointmentRoutes } from "./modules/appointments/presentation/appointme
 import { transactionRoutes } from "./modules/transactions/presentation/transaction.routes"
 import { dashboardRoutes } from "./modules/dashboard/presentation/dashboard.routes"
 import { alertRoutes } from "./modules/alerts/presentation/alert.routes"
+import { onboardingRoutes } from "./modules/onboarding/presentation/onboarding.routes"
 import { authRoutes } from "./modules/auth/auth.routes"
+import { publicRoutes } from "./modules/public/presentation/public.routes"
+import { billingRoutes } from "./modules/billing/presentation/billing.routes"
 import { stripeWebhookRoutes } from "./webhooks/stripe.webhook"
 
 export async function buildApp() {
@@ -53,7 +56,7 @@ export async function buildApp() {
       redis = redisClient
       app.log.info("Redis conectado para rate limiting distribuído")
     } catch {
-      app.log.warn("Redis indisponível — rate limiting via memória local")
+      app.log.warn("Redis indisponível: rate limiting via memória local")
       redisClient.disconnect()
     }
   }
@@ -100,6 +103,9 @@ export async function buildApp() {
   await app.register(transactionRoutes, { prefix: "/api/transactions" })
   await app.register(dashboardRoutes, { prefix: "/api/dashboard" })
   await app.register(alertRoutes, { prefix: "/api/alerts" })
+  await app.register(onboardingRoutes, { prefix: "/api/onboarding" })
+  await app.register(publicRoutes, { prefix: "/api/public" })
+  await app.register(billingRoutes, { prefix: "/api/billing" })
   await app.register(stripeWebhookRoutes, { prefix: "/webhooks/stripe" })
 
   return app

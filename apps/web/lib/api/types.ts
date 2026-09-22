@@ -2,8 +2,8 @@
  * Espelho dos DTOs expostos por `apps/api`.
  *
  * A fonte da verdade é `apps/api/src/modules/<domínio>/application/dtos/`.
- * Ao mudar um DTO lá, atualize aqui — ou rode `pnpm generate:api`, que gera
- * o client a partir do OpenAPI servido em `/docs/json` e dispensa este arquivo.
+ * Ao mudar um DTO lá, atualize aqui (ou rode `pnpm generate:api`, que gera
+ * o client a partir do OpenAPI servido em `/docs/json` e dispensa este arquivo).
  */
 
 /** Listagens da API sempre vêm envelopadas em `{ data }`. */
@@ -155,6 +155,20 @@ export interface ProfessionalItem {
   ocupacao: number;
 }
 
+export interface CreateProfessionalInput {
+  nome: string;
+  especialidade?: string;
+  email?: string;
+  telefone?: string;
+  salonId?: string;
+  status?: "ativo" | "ferias" | "inativo";
+  comissao?: number;
+  servicos?: string[];
+  dias?: string[];
+  horario?: string;
+  desde?: string;
+}
+
 // ── Serviços ─────────────────────────────────────────
 
 export interface ServiceItem {
@@ -173,6 +187,7 @@ export interface ServiceItem {
 export interface SalonItem {
   id: string;
   nome: string;
+  slug: string;
   endereco: string | null;
   cidade: string | null;
   telefone: string | null;
@@ -186,6 +201,16 @@ export interface SalonItem {
   faturamentoMes: number;
   faturamentoDia: number;
   ocupacao: number;
+}
+
+export interface CreateSalonInput {
+  nome: string;
+  endereco?: string;
+  cidade?: string;
+  telefone?: string;
+  horario?: string;
+  cadeiras?: number;
+  principal?: boolean;
 }
 
 // ── Transações ───────────────────────────────────────
@@ -215,6 +240,32 @@ export interface TransactionSummary {
   historico: Array<{ mes: string; receita: number; atendimentos: number }>;
 }
 
+export interface TransactionReportQuery {
+  from: string;
+  to: string;
+  salonId?: string;
+  professionalId?: string;
+  groupBy?: "day" | "week" | "month";
+}
+
+export interface TransactionReportPeriod {
+  period: string;
+  incomeCents: number;
+  expenseCents: number;
+  netCents: number;
+  count: number;
+}
+
+export interface TransactionReport {
+  data: TransactionReportPeriod[];
+  totals: {
+    incomeCents: number;
+    expenseCents: number;
+    netCents: number;
+    count: number;
+  };
+}
+
 // ── Alertas ──────────────────────────────────────────
 
 export interface AlertItem {
@@ -241,4 +292,79 @@ export interface Organization {
     | "past_due"
     | "canceled"
     | (string & {});
+}
+
+export interface CreateOrganizationInput {
+  name: string;
+}
+
+export interface OrganizationMember {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "staff" | "client" | (string & {});
+}
+
+// ── Agendamento público (booking page, sem auth) ─────
+
+export interface PublicSalon {
+  id: string;
+  name: string;
+  slug: string;
+  address: string | null;
+  phone: string | null;
+  services: Array<{
+    id: string;
+    name: string;
+    durationMinutes: number;
+    priceCents: number;
+  }>;
+  professionals: Array<{
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  }>;
+}
+
+export interface PublicAvailability {
+  slots: Array<{ startsAt: string; endsAt: string }>;
+}
+
+export interface CreatePublicAppointmentInput {
+  salonSlug: string;
+  serviceId: string;
+  professionalId: string;
+  startsAt: string;
+  clientName: string;
+  clientPhone: string;
+}
+
+export interface PublicAppointmentResult {
+  id: string;
+  startsAt: string;
+  salon: string;
+  service: string;
+  professional: string;
+}
+
+// ── Billing (Stripe) ─────────────────────────────────
+
+export interface CheckoutSessionResult {
+  url: string;
+}
+
+export interface BillingPortalResult {
+  url: string;
+}
+
+// ── Onboarding ───────────────────────────────────────
+
+export interface OnboardingStatus {
+  hasOrganization: boolean;
+  hasSalon: boolean;
+  hasProfessional: boolean;
+  completed: boolean;
+  nextStep: "organization" | "salon" | "professional" | null;
+  organizationId?: string;
+  salonId?: string;
 }
