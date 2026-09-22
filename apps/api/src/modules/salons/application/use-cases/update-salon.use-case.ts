@@ -19,6 +19,7 @@ export class UpdateSalonUseCase implements UseCase<Input, void> {
       {
         organizationId,
         name: data.nome ?? existing.name,
+        slug: existing.slug,
         address: data.endereco !== undefined ? (data.endereco ?? undefined) : existing.address,
         city: data.cidade !== undefined ? (data.cidade ?? undefined) : existing.city,
         phone: data.telefone !== undefined ? (data.telefone ?? undefined) : existing.phone,

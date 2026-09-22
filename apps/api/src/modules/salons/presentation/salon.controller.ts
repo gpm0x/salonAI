@@ -29,11 +29,11 @@ export async function getSalonController(
 
 export async function createSalonController(request: FastifyRequest, reply: FastifyReply) {
   const input = createSalonSchema.parse(request.body)
-  const { salonId } = await new CreateSalonUseCase(makeRepo()).execute({
+  const { salonId, slug } = await new CreateSalonUseCase(makeRepo()).execute({
     ...input,
     organizationId: request.organizationId,
   })
-  return reply.status(201).send({ salonId })
+  return reply.status(201).send({ salonId, slug })
 }
 
 export async function updateSalonController(

@@ -1,6 +1,7 @@
 export interface SalonItemDTO {
   id: string
   nome: string
+  slug: string
   endereco: string | null
   cidade: string | null
   telefone: string | null

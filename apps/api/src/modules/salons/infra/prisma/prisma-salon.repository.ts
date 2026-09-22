@@ -2,9 +2,10 @@ import type { PrismaClient } from "@prisma/client"
 import { Salon } from "../../domain/salon.entity"
 import type { ISalonRepository, DateRange } from "../../domain/salon.repository"
 import type { SalonItemDTO } from "../../application/dtos/salon-item.dto"
+import { ConflictError } from "@/shared/domain/errors"
 
 type SalonRow = {
-  id: string; organizationId: string; name: string; address: string | null
+  id: string; organizationId: string; name: string; slug: string; address: string | null
   city: string | null; phone: string | null; businessHours: string | null
   totalChairs: number; isActive: boolean; isMain: boolean
 }
@@ -13,20 +14,29 @@ export class PrismaSalonRepository implements ISalonRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async create(salon: Salon): Promise<void> {
-    await this.prisma.salon.create({
-      data: {
-        id: salon.id,
-        organizationId: salon.organizationId,
-        name: salon.name,
-        address: salon.address ?? null,
-        city: salon.city ?? null,
-        phone: salon.phone ?? null,
-        businessHours: salon.businessHours ?? null,
-        totalChairs: salon.totalChairs,
-        isActive: salon.isActive,
-        isMain: salon.isMain,
-      },
-    })
+    try {
+      await this.prisma.salon.create({
+        data: {
+          id: salon.id,
+          organizationId: salon.organizationId,
+          name: salon.name,
+          slug: salon.slug,
+          address: salon.address ?? null,
+          city: salon.city ?? null,
+          phone: salon.phone ?? null,
+          businessHours: salon.businessHours ?? null,
+          totalChairs: salon.totalChairs,
+          isActive: salon.isActive,
+          isMain: salon.isMain,
+        },
+      })
+    } catch (err: unknown) {
+      // P2002 = unique constraint violation (slug): deixa o use case tentar o proximo candidato
+      if ((err as { code?: string }).code === "P2002") {
+        throw new ConflictError("Slug ja esta em uso")
+      }
+      throw err
+    }
   }
 
   async list(organizationId: string, range: DateRange): Promise<SalonItemDTO[]> {
@@ -70,6 +80,11 @@ export class PrismaSalonRepository implements ISalonRepository {
 
   async findById(id: string, organizationId: string): Promise<Salon | null> {
     const row = await this.prisma.salon.findFirst({ where: { id, organizationId } })
+    return row ? this.toEntity(row) : null
+  }
+
+  async findBySlug(slug: string): Promise<Salon | null> {
+    const row = await this.prisma.salon.findUnique({ where: { slug } })
     return row ? this.toEntity(row) : null
   }
 
@@ -123,6 +138,7 @@ export class PrismaSalonRepository implements ISalonRepository {
     return {
       id: s.id,
       nome: s.name,
+      slug: s.slug,
       endereco: s.address,
       cidade: s.city,
       telefone: s.phone,
@@ -144,6 +160,7 @@ export class PrismaSalonRepository implements ISalonRepository {
       {
         organizationId: row.organizationId,
         name: row.name,
+        slug: row.slug,
         address: row.address ?? undefined,
         city: row.city ?? undefined,
         phone: row.phone ?? undefined,

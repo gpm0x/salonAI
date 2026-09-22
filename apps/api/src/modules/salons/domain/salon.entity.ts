@@ -3,6 +3,7 @@ import { Entity } from "@/shared/domain/entity"
 interface SalonProps {
   organizationId: string
   name: string
+  slug: string
   address?: string
   city?: string
   phone?: string
@@ -15,6 +16,7 @@ interface SalonProps {
 export class Salon extends Entity<SalonProps> {
   get organizationId() { return this.props.organizationId }
   get name() { return this.props.name }
+  get slug() { return this.props.slug }
   get address() { return this.props.address }
   get city() { return this.props.city }
   get phone() { return this.props.phone }
