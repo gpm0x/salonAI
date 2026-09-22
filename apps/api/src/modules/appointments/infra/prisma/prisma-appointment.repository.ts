@@ -1,7 +1,13 @@
 import type { PrismaClient } from "@prisma/client"
 import { Appointment } from "../../domain/appointment.entity"
-import type { IAppointmentRepository } from "../../domain/appointment.repository"
+import type { CompleteAppointmentData, IAppointmentRepository } from "../../domain/appointment.repository"
 import type { AppointmentItemDTO } from "../../application/dtos/appointment-item.dto"
+import { ConflictError, NotFoundError } from "@/shared/domain/errors"
+import {
+  createAppointmentWithProfessionalLock,
+  type ProfessionalBookingInput,
+  type ProfessionalBookingResult,
+} from "@/shared/infrastructure/prisma/with-professional-booking-lock"
 
 function pad(n: number) { return String(n).padStart(2, "0") }
 function toTime(d: Date) { return `${pad(d.getHours())}:${pad(d.getMinutes())}` }
@@ -16,22 +22,8 @@ type ApptRow = {
 export class PrismaAppointmentRepository implements IAppointmentRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async create(a: Appointment): Promise<void> {
-    await this.prisma.appointment.create({
-      data: {
-        id: a.id,
-        organizationId: a.organizationId,
-        salonId: a.salonId,
-        professionalId: a.professionalId,
-        clientId: a.clientId,
-        serviceId: a.serviceId,
-        startsAt: a.startsAt,
-        endsAt: a.endsAt,
-        status: a.status,
-        priceCents: a.priceCents,
-        notes: a.notes ?? null,
-      },
-    })
+  async createWithLock(input: ProfessionalBookingInput): Promise<ProfessionalBookingResult> {
+    return createAppointmentWithProfessionalLock(this.prisma, input)
   }
 
   async list(organizationId: string, date: Date): Promise<AppointmentItemDTO[]> {
@@ -76,19 +68,48 @@ export class PrismaAppointmentRepository implements IAppointmentRepository {
     await this.prisma.appointment.updateMany({ where: { id, organizationId }, data: { status } })
   }
 
-  async hasConflict(professionalId: string, startsAt: Date, endsAt: Date, excludeId?: string): Promise<boolean> {
-    const count = await this.prisma.appointment.count({
-      where: {
-        professionalId,
-        status: { not: "cancelado" },
-        id: excludeId ? { not: excludeId } : undefined,
-        AND: [
-          { startsAt: { lt: endsAt } },
-          { endsAt: { gt: startsAt } },
-        ],
-      },
+  async completeWithTransaction(
+    id: string,
+    organizationId: string,
+    data: CompleteAppointmentData,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      // "concluido" e "cancelado" ficam fora do WHERE de possiveis alvos: um
+      // segundo complete concorrente do mesmo agendamento cai em count === 0
+      // em vez de sobrescrever o status e duplicar a Transaction abaixo.
+      const result = await tx.appointment.updateMany({
+        where: { id, organizationId, status: { notIn: ["concluido", "cancelado"] } },
+        data: { status: "concluido" },
+      })
+
+      if (result.count === 0) {
+        const existing = await tx.appointment.findUnique({
+          where: { id },
+          select: { organizationId: true, status: true },
+        })
+
+        if (!existing || existing.organizationId !== organizationId) {
+          throw new NotFoundError("Agendamento nao encontrado")
+        }
+        if (existing.status === "cancelado") {
+          throw new ConflictError("Agendamento esta cancelado e nao pode ser concluido")
+        }
+        throw new ConflictError("Agendamento ja esta concluido")
+      }
+
+      await tx.transaction.create({
+        data: {
+          organizationId,
+          appointmentId: id,
+          clientId: data.clientId,
+          professionalId: data.professionalId,
+          serviceName: `Servico: ${data.serviceName}`,
+          amountCents: data.amountCents,
+          paymentMethod: "Outro",
+          paidAt: new Date(),
+        },
+      })
     })
-    return count > 0
   }
 
   private toDTO(

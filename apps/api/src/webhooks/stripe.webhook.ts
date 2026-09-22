@@ -1,29 +1,9 @@
 import type { FastifyInstance } from "fastify"
-import Stripe from "stripe"
+import type Stripe from "stripe"
 import { prisma } from "@/shared/infrastructure/prisma/client"
 import { env } from "../config/env"
-
-async function markEventProcessed(eventId: string, eventType: string): Promise<boolean> {
-  try {
-    await prisma.stripeEvent.create({ data: { id: eventId, type: eventType } })
-    return true
-  } catch (err: unknown) {
-    // P2002 = unique constraint violation → evento já processado
-    if ((err as { code?: string }).code === "P2002") return false
-    throw err
-  }
-}
-
-async function setSubscriptionStatus(
-  stripeCustomerId: string,
-  status: string,
-  stripeSubscriptionId: string,
-): Promise<void> {
-  await prisma.organization.updateMany({
-    where: { stripeCustomerId },
-    data: { subscriptionStatus: status, stripeSubscriptionId },
-  })
-}
+import { getStripeClient } from "@/modules/billing/infra/stripe-client"
+import { ProcessStripeEventUseCase } from "@/modules/billing/application/use-cases/process-stripe-event.use-case"
 
 export async function stripeWebhookRoutes(app: FastifyInstance) {
   app.addContentTypeParser("application/json", { parseAs: "buffer" }, (_req, body, done) => {
@@ -42,7 +22,7 @@ export async function stripeWebhookRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "Missing stripe-signature header" })
     }
 
-    const stripe = new Stripe(env.stripeSecretKey)
+    const stripe = getStripeClient()
     let event: Stripe.Event
 
     try {
@@ -51,51 +31,9 @@ export async function stripeWebhookRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "Invalid webhook signature" })
     }
 
-    const processed = await markEventProcessed(event.id, event.type)
-    if (!processed) {
+    const result = await new ProcessStripeEventUseCase(prisma).execute(event)
+    if (result.duplicate) {
       return reply.status(200).send({ received: true, duplicate: true })
-    }
-
-    const obj = event.data.object as Stripe.Subscription | Stripe.Invoice
-
-    switch (event.type) {
-      case "customer.subscription.created":
-      case "customer.subscription.updated": {
-        const sub = obj as Stripe.Subscription
-        await setSubscriptionStatus(
-          sub.customer as string,
-          sub.status,
-          sub.id,
-        )
-        break
-      }
-      case "customer.subscription.deleted": {
-        const sub = obj as Stripe.Subscription
-        await setSubscriptionStatus(sub.customer as string, "canceled", sub.id)
-        break
-      }
-      case "invoice.payment_failed": {
-        const inv = obj as Stripe.Invoice
-        if (inv.subscription) {
-          await prisma.organization.updateMany({
-            where: { stripeCustomerId: inv.customer as string },
-            data: { subscriptionStatus: "past_due" },
-          })
-        }
-        break
-      }
-      case "invoice.payment_succeeded": {
-        const inv = obj as Stripe.Invoice
-        if (inv.subscription) {
-          await prisma.organization.updateMany({
-            where: { stripeCustomerId: inv.customer as string },
-            data: { subscriptionStatus: "active" },
-          })
-        }
-        break
-      }
-      default:
-        break
     }
 
     return reply.status(200).send({ received: true })

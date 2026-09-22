@@ -57,13 +57,15 @@ export function NovoClienteModal({
       cliente
         ? {
             nome: cliente.nome,
-            email: cliente.email === "—" ? "" : cliente.email,
+            email: cliente.email,
             telefone: cliente.telefone,
             status: cliente.status,
             servicoFavorito:
-              cliente.servicoFavorito === "—" ? "" : cliente.servicoFavorito,
+              cliente.servicoFavorito === "Não informado"
+                ? ""
+                : cliente.servicoFavorito,
             profissionalPreferido:
-              cliente.profissionalPreferido === "—"
+              cliente.profissionalPreferido === "Não informado"
                 ? ""
                 : cliente.profissionalPreferido,
             aniversario: cliente.aniversario,
@@ -95,15 +97,15 @@ export function NovoClienteModal({
       // ao editar, preserva id e todo o histórico do cliente
       id: cliente?.id ?? `c-${Date.now()}`,
       nome: form.nome.trim(),
-      email: form.email.trim() || "—",
+      email: form.email.trim(),
       telefone: form.telefone.trim(),
       status: form.status,
       dataCadastro: cliente?.dataCadastro ?? hojeISO,
       ultimaVisita: cliente?.ultimaVisita ?? hojeISO,
       totalVisitas: cliente?.totalVisitas ?? 0,
       totalGasto: cliente?.totalGasto ?? 0,
-      servicoFavorito: form.servicoFavorito.trim() || "—",
-      profissionalPreferido: form.profissionalPreferido || "—",
+      servicoFavorito: form.servicoFavorito.trim() || "Não informado",
+      profissionalPreferido: form.profissionalPreferido || "Não informado",
       aniversario: form.aniversario || "",
     };
 

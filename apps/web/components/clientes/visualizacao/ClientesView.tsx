@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { Button } from "@/components/ui/Button";
 import { IconPlus, IconUsers, IconSparkles, IconWallet, IconClock } from "@/components/ui/icons";
 import { KpiCard, KpiGrid } from "@/components/shared/KpiCard";
@@ -38,14 +39,19 @@ function paraCliente(item: ClientItem): Cliente {
     ultimaVisita: item.ultimaVisita ?? item.dataCadastro,
     totalVisitas: item.totalVisitas,
     totalGasto: item.totalGasto,
-    servicoFavorito: item.servicoFavorito ?? "—",
-    profissionalPreferido: item.profissionalPreferido ?? "—",
+    servicoFavorito: item.servicoFavorito ?? "Não informado",
+    profissionalPreferido: item.profissionalPreferido ?? "Não informado",
     aniversario: item.aniversario ?? "",
   };
 }
 
 export function ClientesView() {
-  const { data: itens, isLoading, isError } = useClientes();
+  const [busca, setBusca] = useState("");
+  const buscaDebounced = useDebouncedValue(busca, 300);
+
+  const { data: itens, isLoading, isError } = useClientes(
+    buscaDebounced || undefined,
+  );
   const criar = useCriarCliente();
   const atualizar = useAtualizarCliente();
   const remover = useRemoverCliente();
@@ -123,7 +129,7 @@ export function ClientesView() {
           variacao={25}
         />
         {/*
-          Antes aqui morava "taxa de retorno" — uma porcentagem que só dizia
+          Antes aqui morava "taxa de retorno": uma porcentagem que só dizia
           quantos cadastros não estavam marcados como inativos, e que nenhuma
           decisão seguia. Este número é uma fila de contatos: quem passou de
           DIAS_PARA_RISCO sem aparecer e quanto essa turma já deixou no caixa.
@@ -158,6 +164,8 @@ export function ClientesView() {
       ) : (
         <ListaClientes
           clientes={clientes}
+          busca={busca}
+          onBuscaChange={setBusca}
           onEditar={abrirEdicao}
           onExcluir={setExcluindo}
         />

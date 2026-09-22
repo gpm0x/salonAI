@@ -2,7 +2,7 @@
  * Leitura da API a partir de Server Components.
  *
  * Toda função aqui devolve `null` quando a chamada falha (API fora do ar, 401,
- * 500…) em vez de lançar — assim uma página do dashboard renderiza em estado
+ * 500…) em vez de lançar: assim uma página do dashboard renderiza em estado
  * vazio no lugar de derrubar a árvore inteira. Quem chama decide o fallback.
  *
  * Em Client Components use `lib/api/hooks.ts`.

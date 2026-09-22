@@ -13,6 +13,7 @@ export interface ISalonRepository {
   list(organizationId: string, range: DateRange): Promise<SalonItemDTO[]>
   findByIdWithMetrics(id: string, organizationId: string, range: DateRange): Promise<SalonItemDTO | null>
   findById(id: string, organizationId: string): Promise<Salon | null>
+  findBySlug(slug: string): Promise<Salon | null>
   update(salon: Salon): Promise<void>
   softDelete(id: string, organizationId: string): Promise<void>
   clearMainSalon(organizationId: string): Promise<void>

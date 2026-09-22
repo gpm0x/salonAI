@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { Topbar } from "@/components/shared/Topbar";
+import { ApiErrorFallback } from "@/components/shared/ApiErrorFallback";
 import { getSession } from "@/lib/auth/session";
+import { getOnboardingStatus } from "@/lib/api/get-onboarding-status";
 
-// Checagem autoritativa de sessão — roda no servidor a cada render do dashboard,
+// Checagem autoritativa de sessão: roda no servidor a cada render do dashboard,
 // independente do middleware. É a defesa que continua valendo mesmo se o
 // middleware for contornado (padrão CVE-2025-29927).
 export default async function DashboardLayout({
@@ -13,6 +15,15 @@ export default async function DashboardLayout({
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const status = await getOnboardingStatus();
+
+  if (!status.ok) {
+    if (status.status === 401) redirect("/login");
+    return <ApiErrorFallback />;
+  }
+
+  if (!status.data.completed) redirect("/onboarding");
 
   return (
     <div className="relative z-10 flex min-h-screen">

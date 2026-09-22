@@ -1,15 +1,25 @@
 import type { UseCase } from "@/shared/application/use-case"
 import type { IProfessionalRepository } from "../../domain/professional.repository"
+import type { ISalonRepository } from "@/modules/salons/domain/salon.repository"
 import { Professional } from "../../domain/professional.entity"
 import type { CreateProfessionalInput } from "../dtos/create-professional.dto"
+import { NotFoundError } from "@/shared/domain/errors"
 
 interface Input extends CreateProfessionalInput { organizationId: string }
 interface Output { professionalId: string }
 
 export class CreateProfessionalUseCase implements UseCase<Input, Output> {
-  constructor(private readonly repo: IProfessionalRepository) {}
+  constructor(
+    private readonly repo: IProfessionalRepository,
+    private readonly salonRepo: ISalonRepository,
+  ) {}
 
   async execute(input: Input): Promise<Output> {
+    if (input.salonId) {
+      const salon = await this.salonRepo.findById(input.salonId, input.organizationId)
+      if (!salon) throw new NotFoundError("Unidade nao encontrada")
+    }
+
     const professional = Professional.create({
       organizationId: input.organizationId,
       salonId: input.salonId ?? undefined,

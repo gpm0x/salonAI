@@ -13,13 +13,20 @@ import { endpoints, qk } from "./endpoints";
 import type {
   AlertItem,
   AppointmentItem,
+  BillingPortalResult,
+  CheckoutSessionResult,
   ClientItem,
   CreateAppointmentInput,
   CreateClientInput,
+  CreateOrganizationInput,
+  CreateProfessionalInput,
+  CreateSalonInput,
   DashboardInsights,
   DashboardMetrics,
   Lista,
+  OnboardingStatus,
   Organization,
+  OrganizationMember,
   ProfessionalItem,
   SalonItem,
   ServiceItem,
@@ -49,6 +56,32 @@ export function useOrganizacaoAtual() {
   });
 }
 
+export function useCreateOrganization() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateOrganizationInput) =>
+      apiClient.post<{ organizationId: string }>(endpoints.organizations.root, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.onboarding.status }),
+  });
+}
+
+/** Lista os membros (admin/staff) da organização atual. Requer role admin. */
+export function useOrganizationMembers() {
+  return useQuery<OrganizationMember[]>({
+    queryKey: qk.organization.members,
+    queryFn: listaDe<OrganizationMember>(endpoints.organizations.members),
+  });
+}
+
+// ── Onboarding ───────────────────────────────────────
+
+export function useOnboardingStatus() {
+  return useQuery<OnboardingStatus>({
+    queryKey: qk.onboarding.status,
+    queryFn: () => apiClient.get<OnboardingStatus>(endpoints.onboarding.status),
+  });
+}
+
 // ── Dashboard ────────────────────────────────────────
 
 export function useDashboardMetricas() {
@@ -68,10 +101,10 @@ export function useDashboardInsights() {
 
 // ── Clientes ─────────────────────────────────────────
 
-export function useClientes() {
+export function useClientes(search?: string) {
   return useQuery<ClientItem[]>({
-    queryKey: qk.clients.all,
-    queryFn: listaDe<ClientItem>(endpoints.clients.root),
+    queryKey: qk.clients.list(search),
+    queryFn: listaDe<ClientItem>(comQuery(endpoints.clients.root, { search })),
   });
 }
 
@@ -151,12 +184,38 @@ export function useCancelarAgendamento() {
   });
 }
 
+/** Conclui o agendamento e gera a transação financeira correspondente, atomicamente. */
+export function useCompleteAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.patch<AppointmentItem>(endpoints.appointments.complete(id), {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.appointments.all });
+      qc.invalidateQueries({ queryKey: qk.transactions.all });
+      qc.invalidateQueries({ queryKey: qk.dashboard.metrics });
+    },
+  });
+}
+
 // ── Profissionais / Serviços / Unidades ──────────────
 
 export function useProfissionais() {
   return useQuery<ProfessionalItem[]>({
     queryKey: qk.professionals.all,
     queryFn: listaDe<ProfessionalItem>(endpoints.professionals.root),
+  });
+}
+
+export function useCreateProfessional() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateProfessionalInput) =>
+      apiClient.post<{ professionalId: string }>(endpoints.professionals.root, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.professionals.all });
+      qc.invalidateQueries({ queryKey: qk.onboarding.status });
+    },
   });
 }
 
@@ -172,6 +231,18 @@ export function useUnidades() {
     queryKey: qk.salons.all,
     queryFn: listaDe<SalonItem>(endpoints.salons.root),
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateSalon() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateSalonInput) =>
+      apiClient.post<{ salonId: string; slug: string }>(endpoints.salons.root, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.salons.all });
+      qc.invalidateQueries({ queryKey: qk.onboarding.status });
+    },
   });
 }
 
@@ -210,5 +281,23 @@ export function useMarcarAlertaLido() {
   return useMutation({
     mutationFn: (id: string) => apiClient.patch<void>(endpoints.alerts.read(id), {}),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.alerts.all }),
+  });
+}
+
+// ── Billing (Stripe) ─────────────────────────────────
+
+/** Cria a Checkout Session do plano Essencial e devolve a URL pra redirecionar o usuário. */
+export function useCreateCheckout() {
+  return useMutation({
+    mutationFn: () =>
+      apiClient.post<CheckoutSessionResult>(endpoints.billing.checkout, {}),
+  });
+}
+
+/** Abre o Billing Portal do Stripe (trocar cartão, cancelar assinatura, ver faturas). */
+export function useBillingPortal() {
+  return useMutation({
+    mutationFn: () =>
+      apiClient.post<BillingPortalResult>(endpoints.billing.portal, {}),
   });
 }
