@@ -6,6 +6,7 @@ import { GetAppointmentUseCase } from "../application/use-cases/get-appointment.
 import { CreateAppointmentUseCase } from "../application/use-cases/create-appointment.use-case"
 import { UpdateAppointmentStatusUseCase } from "../application/use-cases/update-appointment-status.use-case"
 import { CancelAppointmentUseCase } from "../application/use-cases/cancel-appointment.use-case"
+import { CompleteAppointmentUseCase } from "../application/use-cases/complete-appointment.use-case"
 import { createAppointmentSchema } from "../application/dtos/create-appointment.dto"
 import { updateAppointmentStatusSchema } from "../application/dtos/update-appointment-status.dto"
 
@@ -64,4 +65,15 @@ export async function cancelAppointmentController(
     organizationId: request.organizationId,
   })
   return reply.status(204).send()
+}
+
+export async function completeAppointmentController(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply,
+) {
+  const appointment = await new CompleteAppointmentUseCase(makeRepo()).execute({
+    id: request.params.id,
+    organizationId: request.organizationId,
+  })
+  return reply.send(appointment)
 }

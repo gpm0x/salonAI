@@ -1,6 +1,5 @@
 import type { UseCase } from "@/shared/application/use-case"
 import type { IAppointmentRepository } from "../../domain/appointment.repository"
-import { Appointment } from "../../domain/appointment.entity"
 import type { CreateAppointmentInput } from "../dtos/create-appointment.dto"
 import { ConflictError, NotFoundError } from "@/shared/domain/errors"
 import { prisma } from "@/shared/infrastructure/prisma/client"
@@ -40,26 +39,20 @@ export class CreateAppointmentUseCase implements UseCase<Input, Output> {
     if (startsAt < new Date()) throw new ConflictError("Nao e possivel agendar no passado")
 
     const endsAt = new Date(startsAt.getTime() + service.durationMin * 60 * 1000)
-
-    const conflict = await this.repo.hasConflict(input.professionalId, startsAt, endsAt)
-    if (conflict) throw new ConflictError("Profissional ja tem agendamento neste horario")
-
     const priceCents = input.valor ? Math.round(input.valor * 100) : service.priceCents
 
-    const appointment = Appointment.create({
+    const created = await this.repo.createWithLock({
       organizationId: input.organizationId,
       salonId: input.salonId,
       professionalId: input.professionalId,
-      clientId: input.clientId,
       serviceId: input.serviceId,
+      clientId: input.clientId,
       startsAt,
       endsAt,
-      status: "aguardando",
       priceCents,
       notes: input.observacoes,
     })
 
-    await this.repo.create(appointment)
-    return { appointmentId: appointment.id }
+    return { appointmentId: created.id }
   }
 }
