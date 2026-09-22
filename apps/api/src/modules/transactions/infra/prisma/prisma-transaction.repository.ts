@@ -1,8 +1,15 @@
-import type { PrismaClient } from "@prisma/client"
+import { Prisma, type PrismaClient } from "@prisma/client"
 import { Transaction } from "../../domain/transaction.entity"
-import type { ITransactionRepository } from "../../domain/transaction.repository"
+import type { GetReportParams, ITransactionRepository } from "../../domain/transaction.repository"
 import type { TransactionItemDTO } from "../../application/dtos/transaction-item.dto"
 import type { TransactionSummaryDTO } from "../../application/dtos/transaction-summary.dto"
+import type { TransactionReportDTO, TransactionReportPeriodDTO } from "../../application/dtos/transaction-report.dto"
+
+interface ReportRow {
+  period: Date
+  income_cents: bigint | number | null
+  count: bigint | number
+}
 
 const MES_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
 
@@ -150,5 +157,56 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       formasPagamento,
       historico,
     }
+  }
+
+  async getReport(params: GetReportParams): Promise<TransactionReportDTO> {
+    const conditions = [
+      Prisma.sql`"organizationId" = ${params.organizationId}`,
+      Prisma.sql`"paidAt" >= ${params.from}`,
+      Prisma.sql`"paidAt" <= ${params.to}`,
+    ]
+    if (params.professionalId) {
+      conditions.push(Prisma.sql`"professionalId" = ${params.professionalId}`)
+    }
+    if (params.salonId) {
+      conditions.push(
+        Prisma.sql`"appointmentId" IN (SELECT id FROM "appointment" WHERE "salonId" = ${params.salonId})`,
+      )
+    }
+
+    const rows = await this.prisma.$queryRaw<ReportRow[]>(
+      Prisma.sql`
+        SELECT date_trunc(${params.groupBy}, "paidAt") AS period,
+               COALESCE(SUM("amountCents"), 0) AS income_cents,
+               COUNT(*) AS count
+        FROM "transaction"
+        WHERE ${Prisma.join(conditions, " AND ")}
+        GROUP BY period
+        ORDER BY period ASC
+      `,
+    )
+
+    const data: TransactionReportPeriodDTO[] = rows.map((r) => {
+      const incomeCents = Number(r.income_cents ?? 0)
+      return {
+        period: r.period.toISOString(),
+        incomeCents,
+        expenseCents: 0,
+        netCents: incomeCents,
+        count: Number(r.count),
+      }
+    })
+
+    const totals = data.reduce(
+      (acc, row) => ({
+        incomeCents: acc.incomeCents + row.incomeCents,
+        expenseCents: acc.expenseCents + row.expenseCents,
+        netCents: acc.netCents + row.netCents,
+        count: acc.count + row.count,
+      }),
+      { incomeCents: 0, expenseCents: 0, netCents: 0, count: 0 },
+    )
+
+    return { data, totals }
   }
 }

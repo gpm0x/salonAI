@@ -5,7 +5,9 @@ import { ListTransactionsUseCase } from "../application/use-cases/list-transacti
 import { GetTransactionUseCase } from "../application/use-cases/get-transaction.use-case"
 import { CreateTransactionUseCase } from "../application/use-cases/create-transaction.use-case"
 import { GetTransactionSummaryUseCase } from "../application/use-cases/get-transaction-summary.use-case"
+import { GetTransactionReportUseCase } from "../application/use-cases/get-transaction-report.use-case"
 import { createTransactionSchema } from "../application/dtos/create-transaction.dto"
+import { transactionReportQuerySchema } from "../application/dtos/transaction-report-query.dto"
 
 const makeRepo = () => new PrismaTransactionRepository(prisma)
 
@@ -45,4 +47,13 @@ export async function createTransactionController(request: FastifyRequest, reply
     organizationId: request.organizationId,
   })
   return reply.status(201).send({ transactionId })
+}
+
+export async function getTransactionReportController(request: FastifyRequest, reply: FastifyReply) {
+  const query = transactionReportQuerySchema.parse(request.query)
+  const report = await new GetTransactionReportUseCase(makeRepo()).execute({
+    ...query,
+    organizationId: request.organizationId,
+  })
+  return reply.send(report)
 }
