@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify"
 import fp from "fastify-plugin"
 import { prisma } from "../prisma/client"
+import { resolveUserOrganizationId } from "../prisma/resolve-user-organization-id"
 import { UnauthorizedError } from "../../domain/errors"
+import { userRoleSchema, type UserRole } from "../../domain/user-role"
 
 export interface AuthUser {
   id: string
@@ -13,12 +15,20 @@ declare module "fastify" {
   interface FastifyRequest {
     user: AuthUser
     organizationId: string
+    userRole: UserRole
   }
 }
 
 async function authPlugin(fastify: FastifyInstance) {
   fastify.decorateRequest<AuthUser>("user", null as unknown as AuthUser)
   fastify.decorateRequest("organizationId", "")
+  fastify.decorateRequest<UserRole>("userRole", null as unknown as UserRole)
+}
+
+function parseUserRole(value: string): UserRole {
+  const result = userRoleSchema.safeParse(value)
+  if (!result.success) throw new UnauthorizedError("Role de usuario invalida")
+  return result.data
 }
 
 function extractToken(request: FastifyRequest): string | undefined {
@@ -31,7 +41,7 @@ function extractToken(request: FastifyRequest): string | undefined {
   return match?.[1]
 }
 
-// Validates session only — use on routes where user may not have an org yet (e.g. POST /organizations)
+// Validates session only (use on routes where user may not have an org yet, e.g. POST /organizations)
 export async function authenticateUser(request: FastifyRequest, _reply: FastifyReply) {
   const token = extractToken(request)
   if (!token) throw new UnauthorizedError("Token de autenticacao ausente")
@@ -50,19 +60,17 @@ export async function authenticateUser(request: FastifyRequest, _reply: FastifyR
     email: session.user.email,
     name: session.user.name,
   }
+  request.userRole = parseUserRole(session.user.role)
 }
 
 // Full auth: validates session + requires organization
 export async function authenticate(request: FastifyRequest, reply: FastifyReply) {
   await authenticateUser(request, reply)
 
-  const organization = await prisma.organization.findFirst({
-    where: { ownerId: request.user.id },
-  })
+  const organizationId = await resolveUserOrganizationId(request.user.id)
+  if (!organizationId) throw new UnauthorizedError("Organizacao nao encontrada para este usuario")
 
-  if (!organization) throw new UnauthorizedError("Organizacao nao encontrada para este usuario")
-
-  request.organizationId = organization.id
+  request.organizationId = organizationId
 }
 
 export default fp(authPlugin, { name: "auth" })

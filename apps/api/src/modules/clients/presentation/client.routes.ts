@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify"
 import { authenticate } from "@/shared/infrastructure/plugins/auth.plugin"
+import { requireRole } from "@/shared/infrastructure/plugins/require-role.plugin"
 import {
   listClientsController,
   getClientController,
@@ -10,6 +11,7 @@ import {
 
 export async function clientRoutes(fastify: FastifyInstance) {
   fastify.addHook("preHandler", authenticate)
+  fastify.addHook("preHandler", requireRole("admin", "staff"))
 
   fastify.get("/", listClientsController)
   fastify.post("/", createClientController)
